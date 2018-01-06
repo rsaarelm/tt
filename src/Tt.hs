@@ -22,7 +22,7 @@ timeParse :: (Time.ParseTime t) => String -> String -> Maybe t
 timeParse = Time.parseTimeM True Time.defaultTimeLocale
 
 parseDate :: String -> Maybe Token
-parseDate s = Date <$> (timeParse "%Y-%m-%d" s)
+parseDate s = Date <$> timeParse "%Y-%m-%d" s
 
 parseTime :: String -> Maybe Token
 parseTime s = Time <$> timeParse "%H:%M" s
