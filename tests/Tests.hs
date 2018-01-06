@@ -7,8 +7,10 @@ import qualified Data.Time as Time
 main :: IO ()
 main = hspec $
   describe "Tt.parseToken" $ do
-    it "parses regular words" $
-      parseToken "foo" `shouldBe` Word "foo"
+    it "parses identifiers" $
+      parseToken "foo" `shouldBe` Identifier "foo"
+    it "parses random test" $
+      parseToken "123stuff!" `shouldBe` Text "123stuff!"
     it "parses date" $
       parseToken "2012-12-21" `shouldBe` (Date $ Time.fromGregorian 2012 12 21)
     it "parses time of day without seconds" $
@@ -18,6 +20,6 @@ main = hspec $
     it "parses project identifiers" $
       parseToken "+stuff" `shouldBe` Project "stuff"
     it "parses attributes with string values" $
-      parseToken "prio:C" `shouldBe` Attr "prio" (Word "C")
+      parseToken "prio:C" `shouldBe` Colon (Identifier "prio") (Identifier "C")
     it "parses attributes with date values" $
-      parseToken "due:2018-03-20" `shouldBe` Attr "due" (Date $ Time.fromGregorian 2018 3 20)
+      parseToken "due:2018-03-20" `shouldBe` Colon (Identifier "due") (Date $ Time.fromGregorian 2018 3 20)
