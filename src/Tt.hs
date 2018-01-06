@@ -14,7 +14,10 @@ data Token =
 type Parse = Either Token String
 
 parseDate :: String -> Parse
-parseDate s = Right s -- TODO
+parseDate s = case p of
+        Nothing -> Right s
+        Just d -> Left (Date d)
+    where p = Time.parseTimeM True Time.defaultTimeLocale "%Y-%m-%d" s :: Maybe Time.Day
 
 parseTime :: String -> Parse
 parseTime s = Right s -- TODO
