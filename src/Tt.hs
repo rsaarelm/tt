@@ -53,20 +53,16 @@ parseId s = Right s
 parseColon :: String -> Parse
 parseColon s = case elemIndex ':' s of
     Just idx -> case splitAt idx s of
-        (x:xs, (':':y:ys)) -> Left (Colon (parseToken (x:xs)) (parseToken (y:ys)))
+        (x:xs, ':':y:ys) -> Left (Colon (parseToken (x:xs)) (parseToken (y:ys)))
     Nothing -> Right s
 
-parse :: String -> Parse
-parse s = do
-    s <- return s
-    s <- parseDate s
-    s <- parseTime s
-    s <- parseTimeSec s
-    s <- parseProject s
-    s <- parseId s
-    parseColon s
-
 parseToken :: String -> Token
-parseToken s = case parse s of
+parseToken s = case parse of
     Left token -> token
     Right s' -> Text s'
+  where parse = parseDate s
+            >>= parseTime
+            >>= parseTimeSec
+            >>= parseProject
+            >>= parseId
+            >>= parseColon
