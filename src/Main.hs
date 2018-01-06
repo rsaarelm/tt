@@ -9,4 +9,4 @@ main = do
   [f] <- getArgs
   doneData <- readFile f
   let line = head $ lines doneData
-  print $ map parseToken $ words line
+  print $ showTokens $ map parseToken $ words line

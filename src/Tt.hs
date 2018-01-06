@@ -15,6 +15,21 @@ data Token =
   | Colon Token Token       -- ^ Two tokens split by colon (the whole doesn't parse into Time)
     deriving (Eq, Show)
 
+-- | Pretty-print a Token
+showToken :: Token -> String
+showToken (Text t) = t
+showToken (Sym t) = t
+showToken (Date d) = show d
+showToken (Time t) = show t
+showToken (Project p) = "+" ++ p
+showToken (Colon t u) = (show t) ++ ":" ++ (show u)
+
+-- | Pretty-print a Token List
+showTokens :: [Token] -> String
+showTokens [] = ""
+showTokens (x:[]) = showToken x
+showTokens (x:xs) = showToken x ++ " " ++ showTokens xs
+
 -- | Parse a single word (whitespace-delimited string) into a Tt Token.
 parseToken :: String -> Token
 parseToken word = fromMaybe (Text word) $ parseDate word
