@@ -52,10 +52,9 @@ parseColon s = case elemIndex ':' s of
     Nothing -> Nothing
 
 parseToken :: String -> Token
-parseToken s = fromMaybe (Text s) p
-  where p =     parseDate s
-            <|> parseTime s
-            <|> parseTimeSec s
-            <|> parseProject s
-            <|> parseId s
-            <|> parseColon s
+parseToken s = fromMaybe (Text s) $ parseDate s
+                                <|> parseTime s
+                                <|> parseTimeSec s
+                                <|> parseProject s
+                                <|> parseId s
+                                <|> parseColon s
