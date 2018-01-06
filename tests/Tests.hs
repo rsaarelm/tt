@@ -8,7 +8,7 @@ main :: IO ()
 main = hspec $
   describe "Tt.parseToken" $ do
     it "parses identifiers" $
-      parseToken "foo" `shouldBe` Identifier "foo"
+      parseToken "foo" `shouldBe` Sym "foo"
     it "parses random test" $
       parseToken "123stuff!" `shouldBe` Text "123stuff!"
     it "parses date" $
@@ -20,6 +20,6 @@ main = hspec $
     it "parses project identifiers" $
       parseToken "+stuff" `shouldBe` Project "stuff"
     it "parses attributes with string values" $
-      parseToken "prio:C" `shouldBe` Colon (Identifier "prio") (Identifier "C")
+      parseToken "prio:C" `shouldBe` Colon (Sym "prio") (Sym "C")
     it "parses attributes with date values" $
-      parseToken "due:2018-03-20" `shouldBe` Colon (Identifier "due") (Date $ Time.fromGregorian 2018 3 20)
+      parseToken "due:2018-03-20" `shouldBe` Colon (Sym "due") (Date $ Time.fromGregorian 2018 3 20)
