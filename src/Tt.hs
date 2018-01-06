@@ -1,6 +1,7 @@
 module Tt where
 
 import qualified Data.Time as Time
+import qualified Data.Time.LocalTime as LocalTime
 import Data.Char
 import Data.Maybe
 import Control.Applicative
@@ -14,6 +15,7 @@ data Token =
   | Project String          -- ^ A project tag, "+foo" becomes (Project "foo")
   | Colon Token Token       -- ^ Two tokens split by colon (the whole doesn't parse into Time)
     deriving (Eq, Show)
+
 
 -- | Parse a single word (whitespace-delimited string) into a Tt Token.
 parseToken :: String -> Token
@@ -48,12 +50,37 @@ parseToken word = fromMaybe (Text word) $ parseDate word
     timeParse :: (Time.ParseTime t) => String -> String -> Maybe t
     timeParse = Time.parseTimeM True Time.defaultTimeLocale
 
+
+-- | Create standard Token sequence for date and time.
+dateTimeSeq :: LocalTime.LocalTime -> [Token]
+dateTimeSeq lt = [Date (LocalTime.localDay lt), Time (LocalTime.localTimeOfDay lt)]
+
+-- | Get the current local time as Token sequence
+currentDateTime :: IO [Token]
+currentDateTime = do
+    zt <- LocalTime.getZonedTime
+    return (dateTimeSeq (LocalTime.zonedTimeToLocalTime zt))
+
+-- | Line prefix for time log clock in action.
+clockInPrefix :: IO [Token]
+clockInPrefix = do
+    dt <- currentDateTime
+    return $ [Sym "x"] ++ dt ++ [Sym "s"]
+
+-- | Line prefix for time log clock out action.
+clockOutPrefix :: IO [Token]
+clockOutPrefix = do
+    dt <- currentDateTime
+    return $ [Sym "x"] ++ dt ++ [Sym "e"]
+
+
 -- | Pretty-print a Token
 showToken :: Token -> String
 showToken (Text t) = t
 showToken (Sym t) = t
 showToken (Date d) = show d
-showToken (Time t) = show t
+-- Don't show fractional seconds.
+showToken (Time t) = Time.formatTime Time.defaultTimeLocale "%H:%M:%S" t
 showToken (Project p) = "+" ++ p
 showToken (Colon t u) = (show t) ++ ":" ++ (show u)
 
