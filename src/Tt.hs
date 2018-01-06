@@ -2,6 +2,7 @@ module Tt where
 
 import qualified Data.Time as Time
 import Data.Char
+import Data.List
 
 -- | Parts of a todo.txt line item
 data Token =
@@ -49,14 +50,11 @@ parseId s | isId s = Left (Identifier s)
     isIdTail _ = False
 parseId s = Right s
 
--- TODO
---parseColon :: String -> Parse
---parseColon s = case breakOn ":" s of
---    ((h : hs), (':' : t : ts)) -> Left (Colon $ parseToken (h : hs) $ parseToken (t : ts))
---    _ -> Right s
-
 parseColon :: String -> Parse
-parseColon = Right
+parseColon s = case elemIndex ':' s of
+    Just idx -> case splitAt idx s of
+        (x:xs, (':':y:ys)) -> Left (Colon (parseToken (x:xs)) (parseToken (y:ys)))
+    Nothing -> Right s
 
 parse :: String -> Parse
 parse s = do

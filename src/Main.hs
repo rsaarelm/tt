@@ -1,6 +1,7 @@
 module Main where
 
 import System.Environment
+import Tt
 
 main :: IO ()
 main = do
@@ -8,4 +9,4 @@ main = do
   [f] <- getArgs
   doneData <- readFile f
   let line = head $ lines doneData
-  putStrLn line
+  print $ map parseToken $ words line
