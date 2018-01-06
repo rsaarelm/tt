@@ -35,13 +35,10 @@ parseProject ('+' : xs) = Just (Project xs)
 parseProject _ = Nothing
 
 parseId :: String -> Maybe Token
-parseId s | isId s = Just (Identifier s)
+parseId (x:xs) | isFirst x && all isSecond xs = Just (Identifier (x:xs))
     where
-    isId (x:xs) | x == '_' || isAlpha x = isIdTail xs
-    isId _ = False
-    isIdTail [] = True
-    isIdTail (x:xs) | x == '_' || isAlphaNum x = isIdTail xs
-    isIdTail _ = False
+    isFirst c = c == '_' || isAlpha c
+    isSecond c = c == '_' || isAlphaNum c
 parseId _ = Nothing
 
 parseColon :: String -> Maybe Token
