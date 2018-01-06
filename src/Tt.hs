@@ -13,14 +13,23 @@ data Token =
 
 type Parse = Either Token String
 
+timeParse :: (Time.ParseTime t) => String -> String -> Maybe t
+timeParse = Time.parseTimeM True Time.defaultTimeLocale
+
 parseDate :: String -> Parse
-parseDate s = case p of
-        Nothing -> Right s
-        Just d -> Left (Date d)
-    where p = Time.parseTimeM True Time.defaultTimeLocale "%Y-%m-%d" s :: Maybe Time.Day
+parseDate s = case timeParse "%Y-%m-%d" s of
+    Nothing -> Right s
+    Just d -> Left (Date d)
 
 parseTime :: String -> Parse
-parseTime s = Right s -- TODO
+parseTime s = case timeParse "%H:%M" s of
+    Nothing -> Right s
+    Just t -> Left (Time t)
+
+parseTimeSec :: String -> Parse
+parseTimeSec s = case timeParse "%H:%M:%S" s of
+    Nothing -> Right s
+    Just t -> Left (Time t)
 
 parseWord :: String -> Parse
 parseWord s = Left (Word s)
