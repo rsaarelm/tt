@@ -39,27 +39,21 @@ parseToken word = fromMaybe (Text word) $ parseDate word
                                       <|> parseSym word
                                       <|> parseColon word
   where
-    parseDate :: String -> Maybe Token
     parseDate s = Date <$> timeParse "%Y-%m-%d" s
 
-    parseTime :: String -> Maybe Token
     parseTime s = Time <$> timeParse "%H:%M" s
 
-    parseTimeSec :: String -> Maybe Token
     parseTimeSec s = Time <$> timeParse "%H:%M:%S" s
 
-    parseProject :: String -> Maybe Token
     parseProject ('+' : xs) = Just (Project xs)
     parseProject _ = Nothing
 
-    parseSym :: String -> Maybe Token
     parseSym (x:xs) | isFirst x && all isSecond xs = Just (Sym (x:xs))
         where
         isFirst c = c == '_' || isAlpha c
         isSecond c = c == '_' || isAlphaNum c
     parseSym _ = Nothing
 
-    parseColon :: String -> Maybe Token
     parseColon s = case break (== ':') s of
         (x:xs, ':':y:ys) -> Just (Colon (parseToken (x:xs)) (parseToken (y:ys)))
         _ -> Nothing
