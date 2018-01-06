@@ -3,6 +3,8 @@ module Tt where
 import qualified Data.Time as Time
 import Data.Char
 import Data.List
+import Data.Maybe
+import Control.Applicative
 
 -- | Parts of a todo.txt line item
 data Token =
@@ -14,55 +16,46 @@ data Token =
   | Colon Token Token       -- ^ Two tokens split by colon (the whole doesn't parse into Time)
     deriving (Eq, Show)
 
-type Parse = Either Token String
-
 -- Force time parser to return a Maybe-wrapped value of whatever time type we
 -- want using the given format string.
 timeParse :: (Time.ParseTime t) => String -> String -> Maybe t
 timeParse = Time.parseTimeM True Time.defaultTimeLocale
 
-parseDate :: String -> Parse
-parseDate s = case timeParse "%Y-%m-%d" s of
-    Nothing -> Right s
-    Just d -> Left (Date d)
+parseDate :: String -> Maybe Token
+parseDate s = Date <$> (timeParse "%Y-%m-%d" s)
 
-parseTime :: String -> Parse
-parseTime s = case timeParse "%H:%M" s of
-    Nothing -> Right s
-    Just t -> Left (Time t)
+parseTime :: String -> Maybe Token
+parseTime s = Time <$> timeParse "%H:%M" s
 
-parseTimeSec :: String -> Parse
-parseTimeSec s = case timeParse "%H:%M:%S" s of
-    Nothing -> Right s
-    Just t -> Left (Time t)
+parseTimeSec :: String -> Maybe Token
+parseTimeSec s = Time <$> timeParse "%H:%M:%S" s
 
-parseProject :: String -> Parse
-parseProject ('+' : xs) = Left (Project xs)
-parseProject s = Right s
+parseProject :: String -> Maybe Token
+parseProject ('+' : xs) = Just (Project xs)
+parseProject _ = Nothing
 
-parseId :: String -> Parse
-parseId s | isId s = Left (Identifier s)
+parseId :: String -> Maybe Token
+parseId s | isId s = Just (Identifier s)
     where
     isId (x:xs) | x == '_' || isAlpha x = isIdTail xs
     isId _ = False
     isIdTail [] = True
     isIdTail (x:xs) | x == '_' || isAlphaNum x = isIdTail xs
     isIdTail _ = False
-parseId s = Right s
+parseId _ = Nothing
 
-parseColon :: String -> Parse
+parseColon :: String -> Maybe Token
 parseColon s = case elemIndex ':' s of
     Just idx -> case splitAt idx s of
-        (x:xs, ':':y:ys) -> Left (Colon (parseToken (x:xs)) (parseToken (y:ys)))
-    Nothing -> Right s
+        (x:xs, ':':y:ys) -> Just (Colon (parseToken (x:xs)) (parseToken (y:ys)))
+        _ -> Nothing
+    Nothing -> Nothing
 
 parseToken :: String -> Token
-parseToken s = case parse of
-    Left token -> token
-    Right s' -> Text s'
-  where parse = parseDate s
-            >>= parseTime
-            >>= parseTimeSec
-            >>= parseProject
-            >>= parseId
-            >>= parseColon
+parseToken s = fromMaybe (Text s) p
+  where p =     parseDate s
+            <|> parseTime s
+            <|> parseTimeSec s
+            <|> parseProject s
+            <|> parseId s
+            <|> parseColon s
