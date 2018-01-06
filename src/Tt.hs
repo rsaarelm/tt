@@ -11,5 +11,25 @@ data Token =
   | Attr String Token       -- ^ A named attribute, "foo:bar" becomes (Attr "foo" "bar")
     deriving (Eq, Show)
 
+type Parse = Either Token String
+
+parseDate :: String -> Parse
+parseDate s = Right s -- TODO
+
+parseTime :: String -> Parse
+parseTime s = Right s -- TODO
+
+parseWord :: String -> Parse
+parseWord s = Left (Word s)
+
+parse :: String -> Parse
+parse s = do
+    s' <- Right s
+    s'' <- parseDate s'
+    s''' <- parseTime s''
+    return s'''
+
 parseToken :: String -> Token
-parseToken = Word -- TODO
+parseToken s = case parse s of
+    Left token -> token
+    Right s' -> Word s'
