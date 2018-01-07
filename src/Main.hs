@@ -8,11 +8,17 @@ import Tt
 
 in_ :: String -> [String] -> IO ()
 in_ project text = do
-    putStrLn $ unwords (["s", project] ++ text)
+    line <- clockInPrefix
+    putStrLn $ showTokens (line ++ [parseToken project] ++ (map parseToken text))
 
 out :: [String] -> IO ()
 out text = do
-    putStrLn $ unwords ("e" : text)
+    line <- clockOutPrefix
+    putStrLn $ showTokens (line ++ (map parseToken text))
+
+timeclock :: IO ()
+timeclock = do
+    putStrLn "TODO"
 
 opts :: Parser (IO ())
 opts = subparser $
@@ -20,6 +26,8 @@ opts = subparser $
       progDesc "Clock in to a project")
   <> (command "out" $ info (out <$> many (argument str (metavar "description"))) $
       progDesc "Clock out of the clocked in project")
+  <> (command "timeclock" $ info (pure timeclock) $
+      progDesc "Output hours in timeclock format for hledger")
 
 main :: IO ()
 main = join $ execParser $ info (opts <**> helper) $
