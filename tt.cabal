@@ -27,8 +27,9 @@ executable tt
   main-is:             Main.hs
   default-language:    Haskell2010
   build-depends:       base,
-                       tt,
-                       time
+                       optparse-applicative,
+                       time,
+                       tt
 
 test-suite tests
   ghc-options:         -Wall
