@@ -16,9 +16,9 @@ out text = do
 
 opts :: Parser (IO ())
 opts = subparser $
-     (command "in" $ info (in_ <$> (argument str (metavar "project")) <*> (many (argument str idm))) $
+     (command "in" $ info (in_ <$> (argument str (metavar "project")) <*> (many (argument str (metavar "description")))) $
       progDesc "Clock in to a project")
-  <> (command "out" $ info (out <$> many (argument str idm)) $
+  <> (command "out" $ info (out <$> many (argument str (metavar "description"))) $
       progDesc "Clock out of the clocked in project")
 
 main :: IO ()
