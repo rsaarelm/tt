@@ -5,6 +5,24 @@ import Data.Char
 import Data.Maybe
 import Control.Applicative
 
+data ClockEntry =
+    In LocalTime String String
+  | Out LocalTime String
+    deriving (Eq, Show, Ord)
+
+-- | Try to a Token line into a ClockEntry.
+castToClock :: [Token] -> Maybe ClockEntry
+castToClock (Sym "x":Date d:Time t:Sym "s":Sym p:ts) = Just $ In (LocalTime d t) p (showTokens ts)
+castToClock (Sym "x":Date d:Time t:Sym "s":Project p:ts) = Just $ In (LocalTime d t) p (showTokens ts)
+castToClock (Sym "x":Date d:Time t:Sym "e":ts) = Just $ Out (LocalTime d t) (showTokens ts)
+castToClock _ = Nothing
+
+-- | Show a ClockEntry as a timeclock log line.
+asTimeclock :: ClockEntry -> String
+-- Use unwords to avoid trailing whitespace when 'text' is empty.
+asTimeclock (In t project text) = unwords $ ["i", (formatTime defaultTimeLocale "%Y/%m/%d %H:%M:%S" t), project] ++ (words text)
+asTimeclock (Out t text)        = unwords $ ["o", (formatTime defaultTimeLocale "%Y/%m/%d %H:%M:%S" t)] ++ (words text)
+
 -- | Parts of a todo.txt line item
 data Token =
     Text String             -- ^ A whitespace separated string that isn't any of the more specific categories

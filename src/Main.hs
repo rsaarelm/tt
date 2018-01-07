@@ -1,7 +1,9 @@
 module Main where
 
 import Control.Monad (join)
+import Data.Maybe
 import System.Directory (doesFileExist, getHomeDirectory)
+import System.FilePath (joinPath)
 import Options.Applicative
 import Data.Semigroup ((<>))
 import Tt
@@ -24,16 +26,21 @@ opts = subparser $
 in_ :: String -> [String] -> IO ()
 in_ project text = do
     line <- clockInPrefix
-    putStrLn $ showTokens (line ++ [parseToken project] ++ (map parseToken text))
+    todoPath <- todoFilePath
+    appendFile todoPath $ showTokens (line ++ [parseToken project] ++ (map parseToken text))
+    putStrLn "Clocked in"
 
 out :: [String] -> IO ()
 out text = do
     line <- clockOutPrefix
-    putStrLn $ showTokens (line ++ (map parseToken text))
+    todoPath <- todoFilePath
+    appendFile todoPath $ showTokens (line ++ (map parseToken text))
+    putStrLn "Clocked out"
 
 timeclock :: IO ()
 timeclock = do
-    putStrLn "TODO"
+    db <- readDatabase
+    mapM_ putStrLn $ map asTimeclock $ mapMaybe castToClock db
 
 
 parseFile :: FilePath -> IO [[Token]]
@@ -47,7 +54,19 @@ parseFile path = do
 
 readDatabase :: IO [[Token]]
 readDatabase = do
-    home <- getHomeDirectory
-    done <- parseFile (home ++ "/done.txt")
-    todo <- parseFile (home ++ "/todo.txt")
+    donePath <- doneFilePath
+    done <- parseFile donePath
+    todoPath <- todoFilePath
+    todo <- parseFile todoPath
     return (done ++ todo)
+
+todoFilePath :: IO FilePath
+todoFilePath = homeFilePath "todo.txt"
+
+doneFilePath :: IO FilePath
+doneFilePath = homeFilePath "done.txt"
+
+homeFilePath :: FilePath -> IO FilePath
+homeFilePath filename = do
+    home <- getHomeDirectory
+    return $ joinPath [home, filename]
