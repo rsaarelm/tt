@@ -16,11 +16,13 @@ out = do
 
 opts :: Parser (IO ())
 opts = subparser $
-     command "in" (info (in_ <$> argument str idm) idm)
-  <> command "out" (info (pure out) idm)
+     (command "in" $ info (in_ <$> argument str idm) $
+      progDesc "Clock in to a project")
+  <> (command "out" $ info (pure out) $
+      progDesc "Clock out of the clocked in project")
 
 main :: IO ()
-main = join $ execParser $ info opts $
+main = join $ execParser $ info (opts <**> helper) $
     fullDesc
     <> progDesc "Time tracking tool"
     <> header "tt - time tracking tool"
