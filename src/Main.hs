@@ -27,14 +27,14 @@ in_ :: String -> [String] -> IO ()
 in_ project text = do
     line <- clockInPrefix
     todoPath <- todoFilePath
-    appendFile todoPath $ showTokens (line ++ [parseToken project] ++ (map parseToken text))
+    appendFile todoPath $ (showTokens (line ++ [parseToken project] ++ (map parseToken text))) ++ "\n"
     putStrLn "Clocked in"
 
 out :: [String] -> IO ()
 out text = do
     line <- clockOutPrefix
     todoPath <- todoFilePath
-    appendFile todoPath $ showTokens (line ++ (map parseToken text))
+    appendFile todoPath $ (showTokens (line ++ (map parseToken text))) ++ "\n"
     putStrLn "Clocked out"
 
 timeclock :: IO ()
