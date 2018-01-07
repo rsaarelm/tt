@@ -6,19 +6,19 @@ import Options.Applicative
 import Data.Semigroup ((<>))
 import Tt
 
-in_ :: String -> IO ()
-in_ project = do
-    putStrLn $ "in " ++ project
+in_ :: String -> [String] -> IO ()
+in_ project text = do
+    putStrLn $ unwords (["s", project] ++ text)
 
-out :: IO ()
-out = do
-    putStrLn "out!"
+out :: [String] -> IO ()
+out text = do
+    putStrLn $ unwords ("e" : text)
 
 opts :: Parser (IO ())
 opts = subparser $
-     (command "in" $ info (in_ <$> argument str idm) $
+     (command "in" $ info (in_ <$> (argument str (metavar "project")) <*> (many (argument str idm))) $
       progDesc "Clock in to a project")
-  <> (command "out" $ info (pure out) $
+  <> (command "out" $ info (out <$> many (argument str idm)) $
       progDesc "Clock out of the clocked in project")
 
 main :: IO ()
