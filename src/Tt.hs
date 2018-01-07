@@ -17,7 +17,13 @@ data Token =
     deriving (Eq, Show)
 
 
+-- | Turn a string into a Token list
+tokenize :: String -> [Token]
+tokenize text = parseToken <$> words text
+
 -- | Parse a single word (whitespace-delimited string) into a Tt Token.
+-- This function doesn't check that the word has no whitespace, use 'tokenize'
+-- instead to parse text with whitespace.
 parseToken :: String -> Token
 parseToken word = fromMaybe (Text word) $ parseDate word
                                       <|> parseTime word
