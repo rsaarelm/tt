@@ -36,21 +36,21 @@ sortKey (Out t _) = (zonedTimeToUTC t, 1)
 -- | Show a ClockEntry as a timeclock log line.
 asTimeclock :: ClockEntry -> String
 -- Use unwords to avoid trailing whitespace when 'text' is empty.
-asTimeclock (In t project text) = unwords $ ["i", (formatTime defaultTimeLocale "%Y/%m/%d %H:%M:%S" (zonedTimeToLocalTime t)), project] ++ (words text)
-asTimeclock (Out t text)        = unwords $ ["o", (formatTime defaultTimeLocale "%Y/%m/%d %H:%M:%S" (zonedTimeToLocalTime t))] ++ (words text)
+asTimeclock (In t project text) = unwords $ ["i", formatTime defaultTimeLocale "%Y/%m/%d %H:%M:%S" (zonedTimeToLocalTime t), project] ++ words text
+asTimeclock (Out t text)        = unwords $ ["o", formatTime defaultTimeLocale "%Y/%m/%d %H:%M:%S" (zonedTimeToLocalTime t)] ++ words text
 
 -- | Convert database to sorted clock data
 toClockData :: TimeZone -> [[Token]] -> [ClockEntry]
 toClockData tz db = sortBy clockOrd clockLines
     where
         clockLines = mapMaybe (castToClock tz) db
-        clockOrd c1 c2 = (sortKey c1) `compare` (sortKey c2)
+        clockOrd c1 c2 = sortKey c1 `compare` sortKey c2
 
 -- | Show currently clocked project from a ClockEntry sequence.
 -- NB: Function assumes the entries are sorted.
 currentProject :: [ClockEntry] -> Maybe String
 currentProject [] = Nothing
-currentProject ((In _ name _):[]) = Just name
+currentProject [In _ name _] = Just name
 currentProject (_:xs) = currentProject xs
 
 
@@ -140,12 +140,12 @@ showToken (Date d) = show d
 -- Don't show fractional seconds.
 showToken (Time t) = formatTime defaultTimeLocale "%H:%M:%S" t
 showToken (Project p) = "+" ++ p
-showToken (Colon t u) = (show t) ++ ":" ++ (show u)
+showToken (Colon t u) = show t ++ ":" ++ show u
 
 -- | Pretty-print a Token List
 showTokens :: [Token] -> String
 showTokens [] = ""
-showTokens (x:[]) = showToken x
+showTokens [x] = showToken x
 showTokens (x:xs) = showToken x ++ " " ++ showTokens xs
 
 

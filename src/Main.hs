@@ -17,41 +17,41 @@ main = join $ execParser $ info (opts <**> helper) $
 
 opts :: Parser (IO ())
 opts = subparser $
-     (command "in" $ info (in_ <$> (argument str (metavar "project")) <*> (many (argument str (metavar "description")))) $
+     command "in" (info (in_ <$> argument str (metavar "project") <*> many (argument str (metavar "description"))) $
       progDesc "Clock in to a project")
-  <> (command "out" $ info (out <$> many (argument str (metavar "description"))) $
+  <> command "out" (info (out <$> many (argument str (metavar "description"))) $
       progDesc "Clock out of the clocked in project")
-  <> (command "todo" $ info (todo <$> many (argument str (metavar "description"))) $
+  <> command "todo" (info (todo <$> many (argument str (metavar "description"))) $
       progDesc "Add a todo item from the command line")
-  <> (command "timeclock" $ info (pure timeclock) $
+  <> command "timeclock" (info (pure timeclock) $
       progDesc "Output hours in timeclock format for hledger")
 
 in_ :: String -> [String] -> IO ()
 in_ project text = do
     line <- clockInPrefix
     todoPath <- todoFilePath
-    appendFile todoPath $ (showTokens (line ++ (tokenize project) ++ (tokenize $ unwords text))) ++ "\n"
+    appendFile todoPath $ showTokens (line ++ tokenize project ++ tokenize (unwords text)) ++ "\n"
     putStrLn "Clocked in"
 
 out :: [String] -> IO ()
 out text = do
     line <- clockOutPrefix
     todoPath <- todoFilePath
-    appendFile todoPath $ (showTokens (line ++ (tokenize $ unwords text))) ++ "\n"
+    appendFile todoPath $ showTokens (line ++ tokenize (unwords text)) ++ "\n"
     putStrLn "Clocked out"
 
 todo :: [String] -> IO ()
 todo text = do
     line <- todoPrefix
     todoPath <- todoFilePath
-    appendFile todoPath $ (showTokens (line ++ (tokenize $ unwords text))) ++ "\n"
+    appendFile todoPath $ showTokens (line ++ tokenize (unwords text)) ++ "\n"
     putStrLn "Task added"
 
 timeclock :: IO ()
 timeclock = do
     db <- readDatabase
     tz <- getCurrentTimeZone
-    mapM_ putStrLn $ map asTimeclock $ toClockData tz db
+    mapM_ (putStrLn . asTimeclock) $ toClockData tz db
 
 
 parseFile :: FilePath -> IO [[Token]]
@@ -60,8 +60,7 @@ parseFile path = do
     if exists then do
         contents <- readFile path
         return $ map tokenize $ lines contents
-    else do
-        return []
+    else return []
 
 readDatabase :: IO [[Token]]
 readDatabase = do
