@@ -1,27 +1,58 @@
-module Tt where
+module Tt (
+    ClockEntry,
+    asTimeclock,
+    toClockData,
+    currentProject,
+    Token,
+    tokenize,
+    showTokens,
+    todoPrefix,
+    clockInPrefix,
+    clockOutPrefix,
+) where
 
 import Data.Time hiding (parseTime)
 import Data.Char
+import Data.List
 import Data.Maybe
 import Control.Applicative
 
 data ClockEntry =
-    In LocalTime String String
-  | Out LocalTime String
-    deriving (Eq, Show, Ord)
+    In ZonedTime String String
+  | Out ZonedTime String
+    deriving (Show)
 
 -- | Try to a Token line into a ClockEntry.
-castToClock :: [Token] -> Maybe ClockEntry
-castToClock (Sym "x":Date d:Time t:Sym "s":Sym p:ts) = Just $ In (LocalTime d t) p (showTokens ts)
-castToClock (Sym "x":Date d:Time t:Sym "s":Project p:ts) = Just $ In (LocalTime d t) p (showTokens ts)
-castToClock (Sym "x":Date d:Time t:Sym "e":ts) = Just $ Out (LocalTime d t) (showTokens ts)
-castToClock _ = Nothing
+castToClock :: TimeZone -> [Token] -> Maybe ClockEntry
+castToClock tz (Sym "x":Date d:Time t:Sym "s":Sym p:ts) = Just $ In (ZonedTime (LocalTime d t) tz) p (showTokens ts)
+castToClock tz (Sym "x":Date d:Time t:Sym "s":Project p:ts) = Just $ In (ZonedTime (LocalTime d t) tz) p (showTokens ts)
+castToClock tz (Sym "x":Date d:Time t:Sym "e":ts) = Just $ Out (ZonedTime (LocalTime d t) tz) (showTokens ts)
+castToClock _ _ = Nothing
+
+sortKey :: ClockEntry -> (UTCTime, Int)
+sortKey (In t _ _) = (zonedTimeToUTC t, 0)
+sortKey (Out t _) = (zonedTimeToUTC t, 1)
 
 -- | Show a ClockEntry as a timeclock log line.
 asTimeclock :: ClockEntry -> String
 -- Use unwords to avoid trailing whitespace when 'text' is empty.
-asTimeclock (In t project text) = unwords $ ["i", (formatTime defaultTimeLocale "%Y/%m/%d %H:%M:%S" t), project] ++ (words text)
-asTimeclock (Out t text)        = unwords $ ["o", (formatTime defaultTimeLocale "%Y/%m/%d %H:%M:%S" t)] ++ (words text)
+asTimeclock (In t project text) = unwords $ ["i", (formatTime defaultTimeLocale "%Y/%m/%d %H:%M:%S" (zonedTimeToLocalTime t)), project] ++ (words text)
+asTimeclock (Out t text)        = unwords $ ["o", (formatTime defaultTimeLocale "%Y/%m/%d %H:%M:%S" (zonedTimeToLocalTime t))] ++ (words text)
+
+-- | Convert database to sorted clock data
+toClockData :: TimeZone -> [[Token]] -> [ClockEntry]
+toClockData tz db = sortBy clockOrd clockLines
+    where
+        clockLines = mapMaybe (castToClock tz) db
+        clockOrd c1 c2 = (sortKey c1) `compare` (sortKey c2)
+
+-- | Show currently clocked project from a ClockEntry sequence.
+-- NB: Function assumes the entries are sorted.
+currentProject :: [ClockEntry] -> Maybe String
+currentProject [] = Nothing
+currentProject ((In _ name _):[]) = Just name
+currentProject (_:xs) = currentProject xs
+
 
 -- | Parts of a todo.txt line item
 data Token =

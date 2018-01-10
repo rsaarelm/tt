@@ -6,6 +6,7 @@ import System.Directory (doesFileExist, getHomeDirectory)
 import System.FilePath (joinPath)
 import Options.Applicative
 import Data.Semigroup ((<>))
+import Data.Time (getCurrentTimeZone)
 import Tt
 
 main :: IO ()
@@ -29,27 +30,28 @@ in_ :: String -> [String] -> IO ()
 in_ project text = do
     line <- clockInPrefix
     todoPath <- todoFilePath
-    appendFile todoPath $ (showTokens (line ++ [parseToken project] ++ (map parseToken text))) ++ "\n"
+    appendFile todoPath $ (showTokens (line ++ (tokenize project) ++ (tokenize $ unwords text))) ++ "\n"
     putStrLn "Clocked in"
 
 out :: [String] -> IO ()
 out text = do
     line <- clockOutPrefix
     todoPath <- todoFilePath
-    appendFile todoPath $ (showTokens (line ++ (map parseToken text))) ++ "\n"
+    appendFile todoPath $ (showTokens (line ++ (tokenize $ unwords text))) ++ "\n"
     putStrLn "Clocked out"
 
 todo :: [String] -> IO ()
 todo text = do
     line <- todoPrefix
     todoPath <- todoFilePath
-    appendFile todoPath $ (showTokens (line ++ (map parseToken text))) ++ "\n"
+    appendFile todoPath $ (showTokens (line ++ (tokenize $ unwords text))) ++ "\n"
     putStrLn "Task added"
 
 timeclock :: IO ()
 timeclock = do
     db <- readDatabase
-    mapM_ putStrLn $ map asTimeclock $ mapMaybe castToClock db
+    tz <- getCurrentTimeZone
+    mapM_ putStrLn $ map asTimeclock $ toClockData tz db
 
 
 parseFile :: FilePath -> IO [[Token]]
