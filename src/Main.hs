@@ -20,6 +20,8 @@ opts = subparser $
       progDesc "Clock in to a project")
   <> (command "out" $ info (out <$> many (argument str (metavar "description"))) $
       progDesc "Clock out of the clocked in project")
+  <> (command "todo" $ info (todo <$> many (argument str (metavar "description"))) $
+      progDesc "Add a todo item from the command line")
   <> (command "timeclock" $ info (pure timeclock) $
       progDesc "Output hours in timeclock format for hledger")
 
@@ -36,6 +38,13 @@ out text = do
     todoPath <- todoFilePath
     appendFile todoPath $ (showTokens (line ++ (map parseToken text))) ++ "\n"
     putStrLn "Clocked out"
+
+todo :: [String] -> IO ()
+todo text = do
+    line <- todoPrefix
+    todoPath <- todoFilePath
+    appendFile todoPath $ (showTokens (line ++ (map parseToken text))) ++ "\n"
+    putStrLn "Task added"
 
 timeclock :: IO ()
 timeclock = do

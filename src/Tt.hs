@@ -96,6 +96,10 @@ clockOutPrefix = do
     dt <- currentDateTime
     return $ [Sym "x"] ++ dt ++ [Sym "e"]
 
+todoPrefix :: IO [Token]
+todoPrefix = do
+    day <- today
+    return [Date day]
 
 -- | Pretty-print a Token
 showToken :: Token -> String
@@ -112,3 +116,9 @@ showTokens :: [Token] -> String
 showTokens [] = ""
 showTokens (x:[]) = showToken x
 showTokens (x:xs) = showToken x ++ " " ++ showTokens xs
+
+
+today :: IO Day
+today = do
+    zt <- getZonedTime
+    return $ localDay (zonedTimeToLocalTime zt)
