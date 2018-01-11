@@ -21,7 +21,7 @@ opts = subparser $
       progDesc "Clock in to a project")
   <> command "out" (info (out <$> many (argument str (metavar "description"))) $
       progDesc "Clock out of the clocked in project")
-  <> command "todo" (info (todo <$> many (argument str (metavar "description"))) $
+  <> command "todo" (info (todo <$> some (argument str (metavar "description"))) $
       progDesc "Add a todo item from the command line")
   <> command "timeclock" (info (pure timeclock) $
       progDesc "Output hours in timeclock format for hledger")
