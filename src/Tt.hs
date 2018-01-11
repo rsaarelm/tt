@@ -23,11 +23,17 @@ data ClockEntry =
     deriving (Show)
 
 -- | Try to a Token line into a ClockEntry.
-castToClock :: TimeZone -> [Token] -> Maybe ClockEntry
-castToClock tz (Sym "x":Date d:Time t:Sym "s":Sym p:ts) = Just $ In (ZonedTime (LocalTime d t) tz) p (showTokens ts)
-castToClock tz (Sym "x":Date d:Time t:Sym "s":Project p:ts) = Just $ In (ZonedTime (LocalTime d t) tz) p (showTokens ts)
-castToClock tz (Sym "x":Date d:Time t:Sym "e":ts) = Just $ Out (ZonedTime (LocalTime d t) tz) (showTokens ts)
-castToClock _ _ = Nothing
+castToClock :: [Token] -> Maybe ClockEntry
+castToClock (Sym "x":Date d:Time t:Sym "s":Sym p:ts) = Just $ In (combineTimes d t) p (showTokens ts)
+castToClock (Sym "x":Date d:Time t:Sym "s":Project p:ts) = Just $ In (combineTimes d t) p (showTokens ts)
+castToClock (Sym "x":Date d:Time t:Sym "e":ts) = Just $ Out (combineTimes d t) (showTokens ts)
+castToClock _ = Nothing
+
+-- | Combine LocalTime date and ZonedTime time of day from the token string to a single ZonedTime
+combineTimes :: Day -> ZonedTime -> ZonedTime
+combineTimes day zonedTime = ZonedTime localTime tz
+    where localTime = LocalTime day (localTimeOfDay (zonedTimeToLocalTime zonedTime))
+          tz = zonedTimeZone zonedTime
 
 sortKey :: ClockEntry -> (UTCTime, Int)
 sortKey (In t _ _) = (zonedTimeToUTC t, 0)
@@ -36,14 +42,14 @@ sortKey (Out t _) = (zonedTimeToUTC t, 1)
 -- | Show a ClockEntry as a timeclock log line.
 asTimeclock :: ClockEntry -> String
 -- Use unwords to avoid trailing whitespace when 'text' is empty.
-asTimeclock (In t project text) = unwords $ ["i", formatTime defaultTimeLocale "%Y/%m/%d %H:%M:%S" (zonedTimeToLocalTime t), project] ++ words text
-asTimeclock (Out t text)        = unwords $ ["o", formatTime defaultTimeLocale "%Y/%m/%d %H:%M:%S" (zonedTimeToLocalTime t)] ++ words text
+asTimeclock (In t project text) = unwords $ ["i", formatTime defaultTimeLocale "%Y/%m/%d %H:%M:%S%z" t, project] ++ words text
+asTimeclock (Out t text)        = unwords $ ["o", formatTime defaultTimeLocale "%Y/%m/%d %H:%M:%S%z" t] ++ words text
 
 -- | Convert database to sorted clock data
-toClockData :: TimeZone -> [[Token]] -> [ClockEntry]
-toClockData tz db = sortBy clockOrd clockLines
+toClockData :: [[Token]] -> [ClockEntry]
+toClockData db = sortBy clockOrd clockLines
     where
-        clockLines = mapMaybe (castToClock tz) db
+        clockLines = mapMaybe castToClock db
         clockOrd c1 c2 = sortKey c1 `compare` sortKey c2
 
 -- | Show currently clocked project from a ClockEntry sequence.
@@ -59,10 +65,10 @@ data Token =
     Text String             -- ^ A whitespace separated string that isn't any of the more specific categories
   | Sym String              -- ^ A [_A-Za-z][_A-Za-z0-9]* symbolic identifier name
   | Date Day                -- ^ A calendar date, YYYY-mm-dd
-  | Time TimeOfDay          -- ^ A time of day, HH:MM[:SS]
+  | Time ZonedTime          -- ^ A time of day, HH:MM:SS-HHMM
   | Project String          -- ^ A project tag, "+foo" becomes (Project "foo")
   | Colon Token Token       -- ^ Two tokens split by colon (the whole doesn't parse into Time)
-    deriving (Eq, Show)
+    deriving (Show)
 
 
 -- | Turn a string into a Token list
@@ -75,16 +81,13 @@ tokenize text = parseToken <$> words text
 parseToken :: String -> Token
 parseToken word = fromMaybe (Text word) $ parseDate word
                                       <|> parseTime word
-                                      <|> parseTimeSec word
                                       <|> parseProject word
                                       <|> parseSym word
                                       <|> parseColon word
   where
     parseDate s = Date <$> timeParse "%Y-%m-%d" s
 
-    parseTime s = Time <$> timeParse "%H:%M" s
-
-    parseTimeSec s = Time <$> timeParse "%H:%M:%S" s
+    parseTime s = Time <$> timeParse "%H:%M:%S%z" s
 
     parseProject ('+' : xs) = Just (Project xs)
     parseProject _ = Nothing
@@ -106,14 +109,14 @@ parseToken word = fromMaybe (Text word) $ parseDate word
 
 
 -- | Create standard Token sequence for date and time.
-dateTimeSeq :: LocalTime -> [Token]
-dateTimeSeq lt = [Date (localDay lt), Time (localTimeOfDay lt)]
+dateTimeSeq :: ZonedTime -> [Token]
+dateTimeSeq zt = [Date (localDay (zonedTimeToLocalTime zt)), Time zt]
 
 -- | Get the current local time as Token sequence
 currentDateTime :: IO [Token]
 currentDateTime = do
     zt <- getZonedTime
-    return (dateTimeSeq (zonedTimeToLocalTime zt))
+    return (dateTimeSeq zt)
 
 -- | Line prefix for time log clock in action.
 clockInPrefix :: IO [Token]
@@ -138,7 +141,7 @@ showToken (Text t) = t
 showToken (Sym t) = t
 showToken (Date d) = show d
 -- Don't show fractional seconds.
-showToken (Time t) = formatTime defaultTimeLocale "%H:%M:%S" t
+showToken (Time t) = formatTime defaultTimeLocale "%H:%M:%S%z" t
 showToken (Project p) = "+" ++ p
 showToken (Colon t u) = show t ++ ":" ++ show u
 

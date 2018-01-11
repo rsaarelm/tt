@@ -50,8 +50,7 @@ todo text = do
 timeclock :: IO ()
 timeclock = do
     db <- readDatabase
-    tz <- getCurrentTimeZone
-    mapM_ (putStrLn . asTimeclock) $ toClockData tz db
+    mapM_ (putStrLn . asTimeclock) $ toClockData db
 
 
 parseFile :: FilePath -> IO [[Token]]
