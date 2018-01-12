@@ -38,8 +38,8 @@ combineTimes day zonedTime = ZonedTime localTime tz
           tz = zonedTimeZone zonedTime
 
 sortKey :: ClockEntry -> (UTCTime, Int)
-sortKey (In t _ _) = (zonedTimeToUTC t, 0)
-sortKey (Out t _) = (zonedTimeToUTC t, 1)
+sortKey (In t _ _) = (zonedTimeToUTC t, 1)
+sortKey (Out t _) = (zonedTimeToUTC t, 0)
 
 -- | Show a ClockEntry as a timeclock log line.
 asTimeclock :: ClockEntry -> String
