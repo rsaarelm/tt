@@ -3,6 +3,7 @@ module Tt (
     asTimeclock,
     toClockData,
     currentProject,
+    timeSpans,
     todaySpan,
     thisMonthSpan,
     Token,
@@ -17,6 +18,7 @@ import Data.Time hiding (parseTime)
 import Data.Char
 import Data.List
 import Data.Maybe
+import Debug.Trace
 import Control.Applicative
 
 data ClockEntry =
@@ -61,6 +63,15 @@ currentProject [] = Nothing
 currentProject [In _ name _] = Just name
 currentProject (_:xs) = currentProject xs
 
+
+timeSpans :: [ClockEntry] -> [(String, TimeSpan)]
+timeSpans [] = []
+timeSpans (In t1 project _:Out t2 _:ts) = (project, TimeSpan (zonedTimeToUTC t1) (zonedTimeToUTC t2)) : timeSpans ts
+-- Started clock that hasn't closed yet, this is fine, but we can't do the span without a current time.
+timeSpans (In _ _ _:[]) = []
+-- TODO: Proper warnings from bad data
+timeSpans (Out _ _:ts) = trace "Unmatched clock out" timeSpans ts
+timeSpans (In _ _ _:In t2 p t:ts) = trace "Unmatched clock in" timeSpans ((In t2 p t):ts)
 
 data TimeSpan = TimeSpan { startTime :: UTCTime, endTime :: UTCTime }
     deriving (Show)
