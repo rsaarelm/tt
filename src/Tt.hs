@@ -3,6 +3,8 @@ module Tt (
     asTimeclock,
     toClockData,
     currentProject,
+    todaySpan,
+    thisMonthSpan,
     Token,
     tokenize,
     showTokens,
@@ -59,6 +61,39 @@ currentProject [] = Nothing
 currentProject [In _ name _] = Just name
 currentProject (_:xs) = currentProject xs
 
+
+data TimeSpan = TimeSpan { startTime :: UTCTime, endTime :: UTCTime }
+    deriving (Show)
+
+-- | Time span for this day in the local time zone.
+todaySpan :: IO TimeSpan
+todaySpan = do
+    zt <- getZonedTime
+    return TimeSpan { startTime = zonedTimeToUTC $ start zt, endTime = zonedTimeToUTC $ end zt}
+    where start zt = zt { zonedTimeToLocalTime = startOfDay (zonedTimeToLocalTime zt) }
+          end zt = zt { zonedTimeToLocalTime = endOfDay (zonedTimeToLocalTime zt) }
+
+-- | Time span for this month in the local time zone.
+thisMonthSpan :: IO TimeSpan
+thisMonthSpan = do
+    zt <- getZonedTime
+    return TimeSpan { startTime = zonedTimeToUTC $ start zt, endTime = zonedTimeToUTC $ end zt}
+    where start zt = zt { zonedTimeToLocalTime = startOfMonth (zonedTimeToLocalTime zt) }
+          end zt = zt { zonedTimeToLocalTime = endOfMonth (zonedTimeToLocalTime zt) }
+
+startOfDay :: LocalTime -> LocalTime
+startOfDay t = t { localTimeOfDay = midnight }
+
+endOfDay :: LocalTime -> LocalTime
+endOfDay t = LocalTime { localTimeOfDay = midnight, localDay = addDays 1 (localDay t) }
+
+startOfMonth :: LocalTime -> LocalTime
+startOfMonth t = LocalTime first midnight
+    where first = let (y, m, _) = toGregorian (localDay t) in fromGregorian y m 1
+
+endOfMonth :: LocalTime -> LocalTime
+endOfMonth t = LocalTime (addGregorianMonthsClip 1 first) midnight
+    where first = let (y, m, _) = toGregorian (localDay t) in fromGregorian y m 1
 
 -- | Parts of a todo.txt line item
 data Token =
@@ -156,3 +191,9 @@ today :: IO Day
 today = do
     zt <- getZonedTime
     return $ localDay (zonedTimeToLocalTime zt)
+
+
+intersect :: Ord a => (a, a) -> (a, a) -> Maybe (a, a)
+intersect (_, a) (b, _) | b >= a = Nothing
+intersect (a, _) (_, b) | a >= b = Nothing
+intersect (a1, a2) (b1, b2) = Just (a1 `max` b1, a2 `min` b2)
