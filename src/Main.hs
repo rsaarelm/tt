@@ -6,7 +6,8 @@ import System.Directory (doesFileExist, getHomeDirectory)
 import System.FilePath (joinPath)
 import Options.Applicative
 import Data.Semigroup ((<>))
-import Data.Time (getCurrentTimeZone)
+import Data.Time (getCurrentTimeZone, getZonedTime)
+import Text.Printf
 import Tt
 
 main :: IO ()
@@ -25,6 +26,8 @@ opts = subparser $
       progDesc "Add a todo item from the command line")
   <> command "timeclock" (info (pure timeclock) $
       progDesc "Output hours in timeclock format for hledger")
+  <> command "current" (info (pure current) $
+      progDesc "Show current project and hours worked on it today")
 
 in_ :: String -> [String] -> IO ()
 in_ project text = do
@@ -52,6 +55,17 @@ timeclock = do
     db <- readDatabase
     mapM_ (putStrLn . asTimeclock) $ toClockData db
 
+current :: IO ()
+current = do
+    clocks <- fmap toClockData readDatabase
+    zt <- getZonedTime
+    let current = currentProject clocks
+    let currentWork = filter (\x -> Just (sessionProject x) == current) (sessions zt clocks)
+    case current of Just project -> do
+                        let todaysWork = mapMaybe (clamp (daySpan zt)) currentWork
+                        let todaysTime = sum $ map sessionLength todaysWork
+                        printf "%s %s\n" project (showHours todaysTime)
+                    Nothing -> return ()
 
 parseFile :: FilePath -> IO [[Token]]
 parseFile path = do

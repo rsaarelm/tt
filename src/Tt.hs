@@ -3,15 +3,20 @@ module Tt (
     asTimeclock,
     toClockData,
     currentProject,
-    timeSpans,
-    todaySpan,
-    thisMonthSpan,
+    Session,
+    sessionProject,
+    sessions,
+    sessionLength,
+    daySpan,
+    monthSpan,
+    clamp,
     Token,
     tokenize,
     showTokens,
     todoPrefix,
     clockInPrefix,
     clockOutPrefix,
+    showHours,
 ) where
 
 import Data.Time hiding (parseTime)
@@ -20,6 +25,7 @@ import Data.List
 import Data.Maybe
 import Debug.Trace
 import Control.Applicative
+import Text.Printf
 
 data ClockEntry =
     In ZonedTime String String
@@ -64,47 +70,53 @@ currentProject [In _ name _] = Just name
 currentProject (_:xs) = currentProject xs
 
 
-timeSpans :: [ClockEntry] -> [(String, TimeSpan)]
-timeSpans [] = []
-timeSpans (In t1 project _:Out t2 _:ts) = (project, TimeSpan (zonedTimeToUTC t1) (zonedTimeToUTC t2)) : timeSpans ts
+data Session = Session { sessionProject :: String, sessionStart :: UTCTime, sessionEnd :: UTCTime }
+
+-- | Generate sessions given clock entries and current time.
+-- The current time is needed to complete the last open session, if any, to the current timepoint.
+--
+-- NB: Current time is assumed to be larger than the time value of any clock entry.
+-- NB: Clock entries are assumed to be sorted.
+sessions :: ZonedTime -> [ClockEntry] -> [Session]
+sessions _ [] = []
+sessions zt (In t1 project _:Out t2 _:ts) = Session project (zonedTimeToUTC t1) (zonedTimeToUTC t2) : sessions zt ts
 -- Started clock that hasn't closed yet, this is fine, but we can't do the span without a current time.
-timeSpans (In _ _ _:[]) = []
+sessions zt [In t1 project _] = [Session project (zonedTimeToUTC t1) (zonedTimeToUTC zt)]
 -- TODO: Proper warnings from bad data
-timeSpans (Out _ _:ts) = trace "Unmatched clock out" timeSpans ts
-timeSpans (In _ _ _:In t2 p t:ts) = trace "Unmatched clock in" timeSpans ((In t2 p t):ts)
+sessions zt (Out {}:ts) = trace "Unmatched clock out" sessions zt ts
+sessions zt (In {}:In t2 p t:ts) = trace "Unmatched clock in" sessions zt (In t2 p t:ts)
 
-data TimeSpan = TimeSpan { startTime :: UTCTime, endTime :: UTCTime }
-    deriving (Show)
+sessionLength :: Session -> NominalDiffTime
+sessionLength Session { sessionStart = start, sessionEnd = end } = end `diffUTCTime` start
 
--- | Time span for this day in the local time zone.
-todaySpan :: IO TimeSpan
-todaySpan = do
-    zt <- getZonedTime
-    return TimeSpan { startTime = zonedTimeToUTC $ start zt, endTime = zonedTimeToUTC $ end zt}
-    where start zt = zt { zonedTimeToLocalTime = startOfDay (zonedTimeToLocalTime zt) }
-          end zt = zt { zonedTimeToLocalTime = endOfDay (zonedTimeToLocalTime zt) }
+-- | Time span for the day of the given zoned time stamp.
+daySpan :: ZonedTime -> (UTCTime, UTCTime)
+daySpan zt =
+    (zonedTimeToUTC start, zonedTimeToUTC end)
+    where start = zt { zonedTimeToLocalTime = startOfDay (zonedTimeToLocalTime zt) }
+          end = zt { zonedTimeToLocalTime = endOfDay (zonedTimeToLocalTime zt) }
+          startOfDay t = t { localTimeOfDay = midnight }
+          endOfDay t = LocalTime { localTimeOfDay = midnight, localDay = addDays 1 (localDay t) }
 
--- | Time span for this month in the local time zone.
-thisMonthSpan :: IO TimeSpan
-thisMonthSpan = do
-    zt <- getZonedTime
-    return TimeSpan { startTime = zonedTimeToUTC $ start zt, endTime = zonedTimeToUTC $ end zt}
-    where start zt = zt { zonedTimeToLocalTime = startOfMonth (zonedTimeToLocalTime zt) }
-          end zt = zt { zonedTimeToLocalTime = endOfMonth (zonedTimeToLocalTime zt) }
+-- | Time span for the month of the given zoned time stamp.
+monthSpan :: ZonedTime -> (UTCTime, UTCTime)
+monthSpan zt =
+    (zonedTimeToUTC start, zonedTimeToUTC end)
+    where start = zt { zonedTimeToLocalTime = startOfMonth (zonedTimeToLocalTime zt) }
+          end = zt { zonedTimeToLocalTime = endOfMonth (zonedTimeToLocalTime zt) }
+          startOfMonth t = LocalTime first midnight
+              where first = let (y, m, _) = toGregorian (localDay t) in fromGregorian y m 1
+          endOfMonth t = LocalTime (addGregorianMonthsClip 1 first) midnight
+              where first = let (y, m, _) = toGregorian (localDay t) in fromGregorian y m 1
 
-startOfDay :: LocalTime -> LocalTime
-startOfDay t = t { localTimeOfDay = midnight }
+-- | Clamp a work session into a range.
+-- NB: Range pair is assumed to be sorted.
+clamp :: (UTCTime, UTCTime) -> Session -> Maybe Session
+clamp (start, _) Session { sessionEnd = end } | start >= end = Nothing
+clamp (_, end) Session { sessionStart = start } | start >= end = Nothing
+clamp (start, end) s@Session { sessionStart = start', sessionEnd = end' } =
+    Just $ s { sessionStart = start `max` start', sessionEnd = end `min` end' }
 
-endOfDay :: LocalTime -> LocalTime
-endOfDay t = LocalTime { localTimeOfDay = midnight, localDay = addDays 1 (localDay t) }
-
-startOfMonth :: LocalTime -> LocalTime
-startOfMonth t = LocalTime first midnight
-    where first = let (y, m, _) = toGregorian (localDay t) in fromGregorian y m 1
-
-endOfMonth :: LocalTime -> LocalTime
-endOfMonth t = LocalTime (addGregorianMonthsClip 1 first) midnight
-    where first = let (y, m, _) = toGregorian (localDay t) in fromGregorian y m 1
 
 -- | Parts of a todo.txt line item
 data Token =
@@ -203,8 +215,5 @@ today = do
     zt <- getZonedTime
     return $ localDay (zonedTimeToLocalTime zt)
 
-
-intersect :: Ord a => (a, a) -> (a, a) -> Maybe (a, a)
-intersect (_, a) (b, _) | b >= a = Nothing
-intersect (a, _) (_, b) | a >= b = Nothing
-intersect (a1, a2) (b1, b2) = Just (a1 `max` b1, a2 `min` b2)
+showHours :: NominalDiffTime -> String
+showHours d = printf "%d:%02d" (floor $ d / 3600 :: Integer) (floor (d / 60) `mod` 60 :: Integer)
