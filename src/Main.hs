@@ -1,6 +1,6 @@
 module Main where
 
-import Control.Monad (join)
+import Control.Monad
 import Data.Maybe
 import System.Directory (doesFileExist, getHomeDirectory)
 import System.FilePath (joinPath)
@@ -31,17 +31,22 @@ opts = subparser $
 
 in_ :: String -> [String] -> IO ()
 in_ project text = do
+    current <- getCurrentProject
+    when (isJust current) (out [""])
     line <- clockInPrefix
     todoPath <- todoFilePath
     appendFile todoPath $ showTokens (line ++ tokenize project ++ tokenize (unwords text)) ++ "\n"
-    putStrLn "Clocked in"
+    putStrLn $ "Clocked into " ++ project ++ "."
 
 out :: [String] -> IO ()
 out text = do
     line <- clockOutPrefix
     todoPath <- todoFilePath
-    appendFile todoPath $ showTokens (line ++ tokenize (unwords text)) ++ "\n"
-    putStrLn "Clocked out"
+    current <- getCurrentProject
+    case current of Just project -> do
+                        appendFile todoPath $ showTokens (line ++ tokenize (unwords text)) ++ "\n"
+                        putStrLn $ "Clocked out of " ++ project ++ "."
+                    Nothing -> putStrLn "Error: Not clocked in a project"
 
 todo :: [String] -> IO ()
 todo text = do
@@ -82,6 +87,11 @@ readDatabase = do
     todoPath <- todoFilePath
     todo <- parseFile todoPath
     return (done ++ todo)
+
+getCurrentProject :: IO (Maybe String)
+getCurrentProject = do
+    clocks <- fmap toClockData readDatabase
+    return $ currentProject clocks
 
 todoFilePath :: IO FilePath
 todoFilePath = homeFilePath "todo.txt"
