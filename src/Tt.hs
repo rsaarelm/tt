@@ -153,7 +153,7 @@ parseToken word = fromMaybe (Text word) $ parseDate word
     parseSym (x:xs) | isFirst x && all isSecond xs = Just (Sym (x:xs))
         where
         isFirst c = c == '_' || isAlpha c
-        isSecond c = c == '_' || isAlphaNum c
+        isSecond c = c == '_' || c == '-' || isAlphaNum c
     parseSym _ = Nothing
 
     parseColon s = case break (== ':') s of
