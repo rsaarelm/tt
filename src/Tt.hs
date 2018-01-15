@@ -216,4 +216,4 @@ today = do
     return $ localDay (zonedTimeToLocalTime zt)
 
 showHours :: NominalDiffTime -> String
-showHours d = printf "%d:%02d" (floor $ d / 3600 :: Integer) (floor (d / 60) `mod` 60 :: Integer)
+showHours d = printf "%.1f h" $ realToFrac d / (3600 :: Double)
