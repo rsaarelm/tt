@@ -201,7 +201,7 @@ showToken (Date d) = show d
 -- Don't show fractional seconds.
 showToken (Time t) = formatTime defaultTimeLocale "%H:%M:%S%z" t
 showToken (Project p) = "+" ++ p
-showToken (Colon t u) = show t ++ ":" ++ show u
+showToken (Colon t u) = showToken t ++ ":" ++ showToken u
 
 -- | Pretty-print a Token List
 showTokens :: [Token] -> String
