@@ -61,7 +61,7 @@ done :: [String] -> IO ()
 done text = do
     line <- todoPrefix
     todoPath <- todoFilePath
-    appendFile todoPath $ showTokens ((tokenize "x") ++ line ++ tokenize (unwords text)) ++ "\n"
+    appendFile todoPath $ showTokens (tokenize "x" ++ line ++ tokenize (unwords text)) ++ "\n"
     putStrLn "Done task added"
 
 timeclock :: IO ()
