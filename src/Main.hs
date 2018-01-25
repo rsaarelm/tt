@@ -6,7 +6,7 @@ import System.Directory (doesFileExist, getHomeDirectory)
 import System.FilePath (joinPath)
 import Options.Applicative
 import Data.Semigroup ((<>))
-import Data.Time (getCurrentTimeZone, getZonedTime)
+import Data.Time
 import Text.Printf
 import Tt
 
@@ -30,6 +30,8 @@ opts = subparser $
       progDesc "Output hours in timeclock format for hledger")
   <> command "current" (info (pure current) $
       progDesc "Show current project and hours worked on it today")
+  <> command "balance" (info (balance <$> argument str (metavar "project")) $
+      progDesc "Show monthly flexitime balance on project")
 
 in_ :: String -> [String] -> IO ()
 in_ project text = do
@@ -80,6 +82,28 @@ current = do
                         let todaysTime = sum $ map sessionLength todaysWork
                         printf "%s %s\n" project (showHours todaysTime)
                     Nothing -> return ()
+
+balance :: String -> IO ()
+balance project = do
+    clocks <- fmap toClockData readDatabase
+    zt <- getZonedTime
+    let work = mapMaybe (clamp (thisMonthUntilYesterday zt)) (filter (\x -> sessionProject x == project) (sessions zt clocks))
+    let numDays = daysCovered (zonedTimeZone zt) work
+    let amountWorked = sum $ map sessionLength work
+    let nominalHour = nominalDay / 24
+    -- TODO: Make the expected daily hours configurable.
+    let targetAmount = nominalHour * 7.5 * fromInteger (toInteger numDays)
+    let balance = amountWorked - targetAmount
+    printf "%s hours over %d days this month in project %s\n" (showHours amountWorked) numDays project
+    printf "Flexitime balance %s\n" (showHours balance)
+
+
+thisMonthUntilYesterday :: ZonedTime -> (UTCTime, UTCTime)
+thisMonthUntilYesterday zt =
+    (begin, end)
+    where
+        (begin, _) = monthSpan zt
+        (end, _) = daySpan zt
 
 parseFile :: FilePath -> IO [[Token]]
 parseFile path = do
