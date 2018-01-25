@@ -10,6 +10,7 @@ module Tt (
     daySpan,
     monthSpan,
     clamp,
+    daysCovered,
     Token,
     tokenize,
     showTokens,
@@ -117,6 +118,15 @@ clamp (_, end) Session { sessionStart = start } | start >= end = Nothing
 clamp (start, end) s@Session { sessionStart = start', sessionEnd = end' } =
     Just $ s { sessionStart = start `max` start', sessionEnd = end `min` end' }
 
+-- | Count the number of separate days a session list covers
+daysCovered :: TimeZone -> [Session] -> Int
+daysCovered tz = length . group . sort . concatMap (sessionDays tz)
+
+-- | Modified Julian days spanned by a session
+sessionDays :: TimeZone -> Session -> [Integer]
+sessionDays tz session =
+    [utcDay (sessionStart session)..utcDay (sessionEnd session)]
+    where utcDay u = toModifiedJulianDay $ localDay (utcToLocalTime tz u)
 
 -- | Parts of a todo.txt line item
 data Token =
