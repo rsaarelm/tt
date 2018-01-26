@@ -128,6 +128,7 @@ sessionDays tz session =
     [utcDay (sessionStart session)..utcDay (sessionEnd session)]
     where utcDay u = toModifiedJulianDay $ localDay (utcToLocalTime tz u)
 
+
 -- | Parts of a todo.txt line item
 data Token =
     Text String             -- ^ A whitespace separated string that isn't any of the more specific categories
