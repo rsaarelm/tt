@@ -34,7 +34,7 @@ data ClockEntry =
     deriving (Show)
 
 -- | Try to a Token line into a ClockEntry.
-castToClock :: [Token] -> Maybe ClockEntry
+castToClock :: Entry -> Maybe ClockEntry
 castToClock (Sym "x":Date d:Time t:Sym "s":Sym p:ts) = Just $ In (combineTimes d t) p (showTokens ts)
 castToClock (Sym "x":Date d:Time t:Sym "s":Project p:ts) = Just $ In (combineTimes d t) p (showTokens ts)
 castToClock (Sym "x":Date d:Time t:Sym "e":ts) = Just $ Out (combineTimes d t) (showTokens ts)
@@ -57,7 +57,7 @@ asTimeclock (In t project text) = unwords $ ["i", formatTime defaultTimeLocale "
 asTimeclock (Out t text)        = unwords $ ["o", formatTime defaultTimeLocale "%Y/%m/%d %H:%M:%S%z" t] ++ words text
 
 -- | Convert database to sorted clock data
-toClockData :: [[Token]] -> [ClockEntry]
+toClockData :: [Entry] -> [ClockEntry]
 toClockData db = sortBy clockOrd clockLines
     where
         clockLines = mapMaybe castToClock db
@@ -138,9 +138,11 @@ data Token =
   | Colon Token Token       -- ^ Two tokens split by colon (the whole doesn't parse into Time)
     deriving (Show)
 
+type Entry = [Token]
+
 
 -- | Turn a string into a Token list
-tokenize :: String -> [Token]
+tokenize :: String -> Entry
 tokenize text = parseToken <$> words text
 
 -- | Parse a single word (whitespace-delimited string) into a Tt Token.
@@ -214,7 +216,7 @@ showToken (Project p) = "+" ++ p
 showToken (Colon t u) = showToken t ++ ":" ++ showToken u
 
 -- | Pretty-print a Token List
-showTokens :: [Token] -> String
+showTokens :: Entry -> String
 showTokens [] = ""
 showTokens [x] = showToken x
 showTokens (x:xs) = showToken x ++ " " ++ showTokens xs
