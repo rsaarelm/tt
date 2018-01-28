@@ -17,9 +17,12 @@ library
   ghc-options:         -Wall
   hs-source-dirs:      src
   exposed-modules:     Tt,
+                       Tt.Db
                        Tt.Token
   default-language:    Haskell2010
   build-depends:       base,
+                       directory,
+                       filepath,
                        parsec,
                        time
 
