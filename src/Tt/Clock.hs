@@ -1,4 +1,5 @@
 module Tt.Clock (
+  ClockEntry(In, Out),
   ClockDb,
   clocks,
   currentProject,
