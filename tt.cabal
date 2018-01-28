@@ -16,9 +16,8 @@ extra-source-files:  README.md
 library
   ghc-options:         -Wall
   hs-source-dirs:      src
-  exposed-modules:     Tt
+  exposed-modules:     Tt.Token
                        Tt.Db
-                       Tt.Token
                        Tt.Clock
                        Tt.Session
                        Tt.Todo
@@ -34,11 +33,16 @@ executable tt
   hs-source-dirs:      src
   main-is:             Main.hs
   default-language:    Haskell2010
-  other-modules:       Tt
+  other-modules:       Tt.Clock
+                       Tt.Db
+                       Tt.Token
+                       Tt.Session
+                       Tt.Todo
   build-depends:       base,
                        directory,
                        filepath,
                        optparse-applicative,
+                       parsec,
                        time,
                        tt
 
