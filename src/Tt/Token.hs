@@ -8,10 +8,10 @@ import Control.Monad
 import Data.Char
 import Data.Fixed (Pico)
 import Data.Time
-import Numeric
 import Text.Parsec
 import Text.Parsec.String (Parser)
 import Text.Printf
+import Tt.Util
 
 -- | Parts of a todo.txt line item
 data Token =
@@ -38,7 +38,7 @@ showToken (Date d) = show d
 showToken (Time (t, z)) = formatTime defaultTimeLocale "%H:%M:%S%z"
                           (toZonedTime t z)
 showToken (Colon t u) = showToken t ++ ":" ++ showToken u
-showToken (Number n) = showFFloat Nothing (fromRat n :: Double) ""
+showToken (Number n) = showRat n
 showToken (Priority ch) = printf "(%c)" ch
 showToken (Comment c) = printf "--%s" c
 showToken (Sym t) = t
