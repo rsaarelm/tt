@@ -64,15 +64,17 @@ todo :: [String] -> IO ()
 todo text = do
     now <- getZonedTime
     let msg = unwords text
-    append $ todoEntry now msg
-    printf "Task added: %s\n" msg
+    let entry = todoEntry now msg
+    append entry
+    printf "Todo task added: %s\n" (showTokens entry)
 
 done :: [String] -> IO ()
 done text = do
     now <- getZonedTime
     let msg = unwords text
-    append $ doneEntry now msg
-    printf "Done task added: %s\n" msg
+    let entry = doneEntry now msg
+    append entry
+    printf "Done task added: %s\n" (showTokens entry)
 
 
 timeclock :: IO ()
