@@ -15,15 +15,25 @@ lines are found in the `done.txt` and `todo.txt` log files.
 
 ## TODO items
 
-Handled by todo.txt conventions, tt won't do much with these. However, it does
-provide "todo" and "done" commands to add a new open item or add a done item.
+Tt is not a complete todo application. You are assumed to use a text editor or
+a dedicated todo.txt tool like Simpletask to maintain your todo list. However,
+tt does provide you with `todo` and `done` commands to add a new open or
+completed item to your `todo.txt` file from the command line.
+
+    tt todo "Buy milk @shop"
+
+Most of the entries tt deals with are entered directly as done items. You can
+also enter done items to add a daily summary of what you did. See
+[wj](http://tylerneylon.com/a/wj/) for an explanation of such system.
+
+    tt done "+day Finished painting the deck"
 
 ## Time tracking
 
 Clock in and out of projects, this generates lines in your todo.txt file:
 
     tt in my-project
-    tt out Frobnicated the macguffin
+    tt out "Frobnicated the macguffin"
 
 Comments after `tt in [project]` and `tt out` are optional.
 
@@ -42,3 +52,43 @@ on it today:
 
 This is useful for status displays like a custom command prompt or a desktop
 status bar to have your clock situation visible at a glance.
+
+## Goal tracking
+
+You can use tt to track goals that you work towards cumulatively. Write
+entries using the GOAL tag as follows:
+
+    x 2017-10-01 GOAL run 50 km due:2017-12-01  Half-marathon training
+
+This sets the start date (2017-10-01), the end date (2017-12-01), the goal
+project name (run) and the target value with an optional unit (50 km).
+
+You can then log contributions to the goal with subsequent datapoint entries:
+
+    x 2017-10-05 run 4 km  Trying out new shoes.
+
+If the `GOAL` target specified an unit, the datapoint must have the same unit.
+Goals can also be specified without a unit for items that are simple counts.
+For these items, datapoints can omit the number and have an implicit count of
+1:
+
+    x 2017-07-01 GOAL floss 30 due:2017-08-01
+    x 2017-07-02 floss
+
+The goal and datapoint entries can have trailing comments, these are ignored
+when parsing the goal.
+
+Some goals track a measurement instead of accumulation. You can use =
+(always whitespace separated) to set the goal value to a specific number
+instead of adding to the existing value:
+
+    x 2017-03-01 GOAL weight 72 kg due:2017-06-01
+    x 2017-04-02 weight = 76.5 kg
+
+You can view ongoing goals and recently completed ones with
+
+    tt goals
+
+This will list your ongoing goals, how far along to completion they are and
+whether you're ahead or behind your expected schedule of steadily completing
+them.
