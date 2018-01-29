@@ -24,9 +24,9 @@ data Value a =
   | Set a
     deriving (Show)
 
-addValue :: Num a => Value a -> a -> a
-addValue (Set a) _ = a
-addValue (Add a) b = a + b
+addValue :: Num a => a -> Value a -> a
+addValue _ (Set b) = b
+addValue a (Add b) = a + b
 
 data DataPoint = DataPoint {
    dataPointDay :: Day,
@@ -49,7 +49,7 @@ toDataPoint :: Entry -> Maybe DataPoint
 -- Goal's unit if Goal's unit isn't Nothing.
 toDataPoint (Sym "x" : Date day : Sym goal : Number amount : es) =
             Just $ DataPoint day goal (Add amount) (parseUnit es)
-toDataPoint (Sym "x" : Date day : Sym goal : Sym "=" : Number amount : es) =
+toDataPoint (Sym "x" : Date day : Sym goal : Text "=" : Number amount : es) =
             Just $ DataPoint day goal (Set amount) (parseUnit es)
 toDataPoint (Sym "x" : Date day : Sym goal : _) =
             Just $ DataPoint day goal (Add 1) Nothing
@@ -103,4 +103,4 @@ startValue ps = extract $ map dataPointAmount ps
     extract _ = 0
 
 pointValue :: [DataPoint] -> Rational
-pointValue = foldr (addValue . dataPointAmount) 0
+pointValue ps = foldl addValue 0 (map dataPointAmount ps)

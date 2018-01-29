@@ -139,7 +139,7 @@ printGoal :: Db -> Day -> Goal -> IO ()
 printGoal db day goal =
     printf "%-17s %-12s  % 5.0f days\n"
         (goalName goal)
-        (printf "%s / %s %s"
+        (printf "%s -> %s %s"
             (showRat currentProgress)
             (showRat $ goalTarget goal)
             (fromMaybe "" (goalUnit goal)) :: String)
