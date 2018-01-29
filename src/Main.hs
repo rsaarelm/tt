@@ -10,7 +10,6 @@ import Tt.Clock
 import Tt.Db
 import Tt.Session
 import Tt.Todo
-import Tt.Token
 
 main :: IO ()
 main = join $ execParser $ info (opts <**> helper) $
@@ -106,7 +105,7 @@ balance project = do
     let amountWorked = sum $ map sessionLength work
     let nominalHour = nominalDay / 24
     -- TODO: Make the expected daily hours configurable.
-    let targetAmount = nominalHour * 7.5 * fromInteger (toInteger numDays)
+    let targetAmount = nominalHour * 7.5 * fromIntegral numDays
     let balance = amountWorked - targetAmount
     printf "%s hours over %d days this month in project %s\n" (showHours amountWorked) numDays project
     printf "Flexitime balance %s\n" (showHours balance)

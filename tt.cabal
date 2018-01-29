@@ -47,8 +47,7 @@ executable tt
                        filepath,
                        optparse-applicative,
                        parsec,
-                       time,
-                       tt
+                       time
 
 test-suite tests
   ghc-options:         -Wall
