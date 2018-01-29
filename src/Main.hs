@@ -8,8 +8,10 @@ import Data.Time
 import Text.Printf
 import Tt.Clock
 import Tt.Db
+import Tt.Goal
 import Tt.Session
 import Tt.Todo
+import Tt.Util
 
 main :: IO ()
 main = join $ execParser $ info (opts <**> helper) $
@@ -33,6 +35,8 @@ opts = subparser $
       progDesc "Show current project and hours worked on it today")
   <> command "balance" (info (balance <$> argument str (metavar "project")) $
       progDesc "Show monthly flexitime balance on project")
+  <> command "goals" (info (pure goals) $
+      progDesc "Show progress on currently active goals")
 
 
 clockIn :: String -> [String] -> IO ()
@@ -55,7 +59,7 @@ clockOut text = do
 
 getCurrentProject :: IO (Maybe String)
 getCurrentProject = do
-    clockDb <- fmap clocks db
+    clockDb <- clocks <$> db
     return $ currentProject clockDb
 
 
@@ -119,6 +123,29 @@ untilYesterday t =
     where
         (begin, _) = monthSpan t
         (end, _) = daySpan t
+
+
+goals :: IO ()
+goals = do
+    entryDb <- db
+    now <- getZonedTime
+    let today = (localDay .zonedTimeToLocalTime) now
+    let goals = activeGoals entryDb today
+    printf "Goal              done           position\n"
+    printf "-----------------|--------------|----------\n"
+    mapM_ (printGoal entryDb today) goals
+
+printGoal :: Db -> Day -> Goal -> IO ()
+printGoal db day goal =
+    printf "%-17s %-12s  % 5.0f days\n"
+        (goalName goal)
+        (printf "%s / %s %s"
+            (showRat currentProgress)
+            (showRat $ goalTarget goal)
+            (fromMaybe "" (goalUnit goal)) :: String)
+        (fromRational daysAhead :: Double)
+  where
+    (currentProgress, daysAhead) = progressStats db day goal
 
 
 db :: IO Db
