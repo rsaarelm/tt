@@ -131,21 +131,23 @@ goals = do
     now <- getZonedTime
     let today = (localDay .zonedTimeToLocalTime) now
     let goals = activeGoals entryDb today
-    printf "Goal              done           position\n"
+    printf "Goal              done           ahead by\n"
     printf "-----------------|--------------|----------\n"
     mapM_ (printGoal entryDb today) goals
 
 printGoal :: Db -> Day -> Goal -> IO ()
 printGoal db day goal =
-    printf "%-17s %-12s  % 5.0f days\n"
+    printf "%-17s %-12s  % 5d day%s\n"
         (goalName goal)
         (printf "%s -> %s %s"
             (showRat currentProgress)
             (showRat $ goalTarget goal)
             (fromMaybe "" (goalUnit goal)) :: String)
-        (fromRational daysAhead :: Double)
+        dayScore
+        (if dayScore /= 1 then "s" else "")
   where
     (currentProgress, daysAhead) = progressStats db day goal
+    dayScore = truncate daysAhead :: Int
 
 
 db :: IO Db
