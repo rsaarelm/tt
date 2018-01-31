@@ -79,11 +79,15 @@ The goal and datapoint entries can have trailing comments, these are ignored
 when parsing the goal.
 
 Some goals track a measurement instead of accumulation. You can use =
-(always whitespace separated) to set the goal value to a specific number
-instead of adding to the existing value:
+(always whitespace separated) to declare an absolute datapoint and set the
+goal value to a specific number instead of adding to the existing value:
 
     x 2017-03-01 GOAL weight 72 kg due:2017-06-01
     x 2017-04-02 weight = 76.5 kg
+
+(If you regularly sort the files in your done file, you probably only want to
+have one absolute datapoint per day. Sorting will not preserve the order of
+the datapoints entered during the same day.)
 
 You can view ongoing goals and recently completed ones with
 
