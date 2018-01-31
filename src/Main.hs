@@ -1,17 +1,17 @@
 module Main where
 
-import Control.Monad
-import Data.Maybe
-import Options.Applicative
-import Data.Semigroup ((<>))
-import Data.Time
-import Text.Printf
-import Tt.Clock
-import Tt.Db
-import Tt.Goal
-import Tt.Session
-import Tt.Todo
-import Tt.Util
+import           Control.Monad
+import           Data.Maybe
+import           Data.Semigroup      ((<>))
+import           Data.Time
+import           Options.Applicative
+import           Text.Printf
+import           Tt.Clock
+import           Tt.Db
+import           Tt.Goal
+import           Tt.Session
+import           Tt.Todo
+import           Tt.Util
 
 main :: IO ()
 main = join $ execParser $ info (opts <**> helper) $

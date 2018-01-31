@@ -2,8 +2,8 @@ module Tt.Util (
     showRat
 ) where
 
-import Data.Ratio
-import Numeric
+import           Data.Ratio
+import           Numeric
 
 -- | Pretty-print a rational as decimal
 showRat :: Rational -> String

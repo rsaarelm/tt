@@ -4,14 +4,14 @@ module Tt.Token (
     tokenParser,
 ) where
 
-import Control.Monad
-import Data.Char
-import Data.Fixed (Pico)
-import Data.Time
-import Text.Parsec
-import Text.Parsec.String (Parser)
-import Text.Printf
-import Tt.Util
+import           Control.Monad
+import           Data.Char
+import           Data.Fixed         (Pico)
+import           Data.Time
+import           Text.Parsec
+import           Text.Parsec.String (Parser)
+import           Text.Printf
+import           Tt.Util
 
 -- | Parts of a todo.txt line item
 data Token =

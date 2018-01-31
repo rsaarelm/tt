@@ -8,11 +8,11 @@ module Tt.Clock (
   clockOutEntry,
 ) where
 
-import Data.List
-import Data.Maybe
-import Data.Time
-import Tt.Token
-import Tt.Db
+import           Data.List
+import           Data.Maybe
+import           Data.Time
+import           Tt.Db
+import           Tt.Token
 
 data ClockEntry =
     In ZonedTime String String
@@ -29,14 +29,14 @@ clocks db = sortBy clockOrd clockLines
     clockOrd c1 c2 = sortKey c1 `compare` sortKey c2
     sortKey :: ClockEntry -> (UTCTime, Int)
     sortKey (In t _ _) = (zonedTimeToUTC t, 1)
-    sortKey (Out t _) = (zonedTimeToUTC t, 0)
+    sortKey (Out t _)  = (zonedTimeToUTC t, 0)
 
 -- | Show currently clocked project from a ClockEntry sequence.
 -- NB: Function assumes the entries are sorted.
 currentProject :: ClockDb -> Maybe String
-currentProject [] = Nothing
+currentProject []            = Nothing
 currentProject [In _ name _] = Just name
-currentProject (_:xs) = currentProject xs
+currentProject (_:xs)        = currentProject xs
 
 -- | Show a ClockEntry as a timeclock log line.
 asTimeclock :: ClockEntry -> String

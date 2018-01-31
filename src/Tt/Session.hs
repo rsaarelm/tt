@@ -10,11 +10,11 @@ module Tt.Session (
   showHours,
 ) where
 
-import Tt.Clock
-import Data.List
-import Data.Time
-import Debug.Trace
-import Text.Printf
+import           Data.List
+import           Data.Time
+import           Debug.Trace
+import           Text.Printf
+import           Tt.Clock
 
 data Session = Session { sessionProject :: String, sessionStart :: UTCTime, sessionEnd :: UTCTime }
 

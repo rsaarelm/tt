@@ -9,11 +9,11 @@ module Tt.Db (
   dbAppend,
 ) where
 
-import Control.Monad
-import System.FilePath (joinPath)
-import System.Directory (doesFileExist, getHomeDirectory)
-import Tt.Token
-import Text.Parsec
+import           Control.Monad
+import           System.Directory (doesFileExist, getHomeDirectory)
+import           System.FilePath  (joinPath)
+import           Text.Parsec
+import           Tt.Token
 
 type Entry = [Token]
 type Db = [Entry]
@@ -46,7 +46,7 @@ tokenize :: String -> Entry
 tokenize text = (unwrap . parse tokenParser "") <$> words text
   where
     unwrap (Right x) = x
-    unwrap (Left _) = error ("Parsing '" ++ text ++ "' failed.")
+    unwrap (Left _)  = error ("Parsing '" ++ text ++ "' failed.")
 
 dbAppend :: DbConf -> Entry -> IO ()
 dbAppend conf entry = appendFile (last conf) (showTokens entry ++ "\n")

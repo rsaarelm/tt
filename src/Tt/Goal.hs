@@ -5,18 +5,18 @@ module Tt.Goal (
     progressStats,
 ) where
 
-import Data.List
-import Data.Maybe
-import Data.Time
-import Tt.Db
-import Tt.Token
+import           Data.List
+import           Data.Maybe
+import           Data.Time
+import           Tt.Db
+import           Tt.Token
 
 data Goal = Goal {
-  goalBegin :: Day,
-  goalName :: String,
+  goalBegin  :: Day,
+  goalName   :: String,
   goalTarget :: Rational,
-  goalUnit :: Maybe String,
-  goalEnd :: Day
+  goalUnit   :: Maybe String,
+  goalEnd    :: Day
 } deriving (Show)
 
 data Value a =
@@ -29,18 +29,18 @@ addValue _ (Set b) = b
 addValue a (Add b) = a + b
 
 data DataPoint = DataPoint {
-   dataPointDay :: Day,
-   dataPointGoal :: String,
+   dataPointDay    :: Day,
+   dataPointGoal   :: String,
    dataPointAmount :: Value Rational,
-   dataPointUnit :: Maybe String
+   dataPointUnit   :: Maybe String
 } deriving (Show)
 
 toGoal :: Entry -> Maybe Goal
 toGoal (Sym "x" : Date begin : Sym "GOAL" : Sym name : Number target :
-        Colon (Sym "due") (Date end) : _) = 
+        Colon (Sym "due") (Date end) : _) =
        Just $ Goal begin name target Nothing end
 toGoal (Sym "x" : Date begin : Sym "GOAL" : Sym name : Number target :
-        Sym unit : Colon (Sym "due") (Date end) : _) = 
+        Sym unit : Colon (Sym "due") (Date end) : _) =
        Just $ Goal begin name target (Just unit) end
 toGoal _ = Nothing
 
@@ -57,7 +57,7 @@ toDataPoint _ = Nothing
 
 parseUnit :: [Token] -> Maybe String
 parseUnit (Sym unit : _) = Just unit
-parseUnit _ = Nothing
+parseUnit _              = Nothing
 
 belongsIn :: Goal -> DataPoint -> Bool
 belongsIn goal point = goalMatches && unitMatches && pointDay >= minDay
@@ -100,7 +100,7 @@ startValue :: [DataPoint] -> Rational
 startValue ps = extract $ map dataPointAmount ps
   where
     extract (Set x:_) = x
-    extract _ = 0
+    extract _         = 0
 
 pointValue :: [DataPoint] -> Rational
 pointValue ps = foldl addValue 0 (map dataPointAmount ps)
