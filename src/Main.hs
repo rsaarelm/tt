@@ -25,6 +25,8 @@ opts = subparser $
       progDesc "Clock in to a project")
   <> command "out" (info (clockOut <$> many (argument str (metavar "description"))) $
       progDesc "Clock out of the clocked in project")
+  <> command "interim" (info (clockOutIn <$> many (argument str (metavar "description"))) $
+      progDesc "Clock out with an interim done message, then clock back in for more work")
   <> command "todo" (info (todo <$> some (argument str (metavar "description"))) $
       progDesc "Add a todo item from the command line")
   <> command "done" (info (done <$> some (argument str (metavar "description"))) $
@@ -55,6 +57,16 @@ clockOut text = do
             now <- getZonedTime
             append $ clockOutEntry now (unwords text)
             printf "Clocked out of %s.\n" project
+        Nothing -> printf "Error: Not clocked in a project.\n"
+
+clockOutIn :: [String] -> IO ()
+clockOutIn text = do
+    current <- getCurrentProject
+    case current of
+        Just project -> do
+            clockOut text
+            clockIn project []
+            printf "Entered interim message for %s.\n" project
         Nothing -> printf "Error: Not clocked in a project.\n"
 
 getCurrentProject :: IO (Maybe String)
