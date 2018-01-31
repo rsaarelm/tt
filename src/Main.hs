@@ -35,7 +35,7 @@ opts = subparser $
       progDesc "Output hours in timeclock format for hledger")
   <> command "current" (info (pure current) $
       progDesc "Show current project and hours worked on it today")
-  <> command "balance" (info (balance <$> argument str (metavar "project")) $
+  <> command "balance" (info (balance <$> optional (argument str (metavar "project"))) $
       progDesc "Show monthly flexitime balance on project")
   <> command "goals" (info (pure goals) $
       progDesc "Show progress on currently active goals")
@@ -116,22 +116,28 @@ current = do
         Nothing -> return ()
 
 
-balance :: String -> IO ()
-balance project = do
-    clockDb <- clocks <$> db
-    now <- getZonedTime
-    let work = mapMaybe (clamp (untilYesterday now)) (projectSessions now clockDb)
-    let numDays = daysCovered (zonedTimeZone now) work
-    let amountWorked = sum $ map sessionLength work
-    let nominalHour = nominalDay / 24
-    -- TODO: Make the expected daily hours configurable.
-    let targetAmount = nominalHour * 7.5 * fromIntegral numDays
-    let balance = amountWorked - targetAmount
-    printf "%s hours over %d days this month in project %s\n" (showHours amountWorked) numDays project
-    printf "Flexitime balance %s\n" (showHours balance)
+balance :: Maybe String -> IO ()
+balance proj = do
+    currentProject <- getCurrentProject
+    case proj <|> currentProject of
+        Just project -> printBalance project
+        Nothing -> putStrLn "No project specified or currently clocked in."
   where
-    projectSessions now clockDb =
-        filter (\x -> sessionProject x == project) (sessions now clockDb)
+    printBalance project = do
+        clockDb <- clocks <$> db
+        now <- getZonedTime
+        let work = mapMaybe (clamp (untilYesterday now)) (projectSessions now clockDb)
+        let numDays = daysCovered (zonedTimeZone now) work
+        let amountWorked = sum $ map sessionLength work
+        let nominalHour = nominalDay / 24
+        -- TODO: Make the expected daily hours configurable.
+        let targetAmount = nominalHour * 7.5 * fromIntegral numDays
+        let balance = amountWorked - targetAmount
+        printf "%s hours over %d days this month in project %s\n" (showHours amountWorked) numDays project
+        printf "Flexitime balance %s\n" (showHours balance)
+      where
+        projectSessions now clockDb =
+            filter (\x -> sessionProject x == project) (sessions now clockDb)
 
 untilYesterday :: ZonedTime -> (UTCTime, UTCTime)
 untilYesterday t =
