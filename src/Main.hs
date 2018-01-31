@@ -87,10 +87,14 @@ done :: [String] -> IO ()
 done text = do
     now <- getZonedTime
     let msg = unwords text
-    let entry = doneEntry now msg
+    -- If the message starts with "^", backdate it to yesterday
+    let (now', msg') = puntBack now msg
+    let entry = doneEntry now' msg'
     append entry
     printf "Done task added: %s\n" (showTokens entry)
-
+  where
+    puntBack t ('^':cs) = puntBack (yesterday t) cs
+    puntBack t s        = (t, s)
 
 timeclock :: IO ()
 timeclock = do

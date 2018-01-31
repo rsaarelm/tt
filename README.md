@@ -28,6 +28,10 @@ also enter done items to add a daily summary of what you did. See
 
     tt done "+day Finished painting the deck"
 
+You can also add a "^" to the start of the message to backdate it to yesterday.
+
+    tt done "^Late night run"
+
 ## Time tracking
 
 Clock in and out of projects, this generates lines in your todo.txt file:
