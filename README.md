@@ -57,6 +57,14 @@ on it today:
 This is useful for status displays like a custom command prompt or a desktop
 status bar to have your clock situation visible at a glance.
 
+Again, you are not expected to use tt as your only application when managing
+your lists. If you make mistakes filing clock items, there are no tt commands
+to change existing entries and you need to use a text editor and correct the
+entries by hand in your `todo.txt` file. The reason tt files even the "done"
+entries in `todo.txt` instead of `done.txt` is that this allows you to use the
+`done.txt` file as a frozen append-only storage that you file done items from
+todo.txt in once you're happy with them.
+
 ## Goal tracking
 
 You can use tt to track goals that you work towards cumulatively. Write
