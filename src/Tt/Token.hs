@@ -17,7 +17,7 @@ import           Tt.Util
 data Token =
     Date Day                    -- ^ A calendar date, YYYY-mm-dd
 
-  | Time (TimeOfDay, TimeZone)  -- ^ A time of day, HH:MM:SS-HHMM
+  | Time TimeOfDay TimeZone     -- ^ A time of day, HH:MM:SS-HHMM
                                 --
                                 --   (we really want ZonedTime here but it
                                 --   doesn't implement Eq which we want to
@@ -35,7 +35,7 @@ data Token =
 showToken :: Token -> String
 showToken (Date d) = show d
 -- Don't show fractional seconds.
-showToken (Time (t, z)) =
+showToken (Time t z) =
   formatTime defaultTimeLocale "%H:%M:%S%z" (toZonedTime t z)
 showToken (Colon t u  ) = showToken t ++ ":" ++ showToken u
 showToken (Number   n ) = showRat n
@@ -68,7 +68,7 @@ date =
   Date <$> (fromGregorian <$> year <* char '-' <*> month <* char '-' <*> day)
 
 zonedTime :: Parser Token
-zonedTime = Time <$> ((,) <$> timeOfDay <*> zoneOffset)
+zonedTime = Time <$> timeOfDay <*> zoneOffset
 
 colon :: Parser Token
 colon = Colon <$> sym <* char ':' <*> (sym <|> date <|> zonedTime <|> number)

@@ -53,14 +53,14 @@ asTimeclock (Out t text) =
 
 -- | Try to convert an Entry into a ClockEntry
 toClockEntry :: Entry -> Maybe ClockEntry
-toClockEntry (Sym "x":Date d:Time t:Sym "s":Sym p:ts) =
-  Just $ In (makeZonedTime d t) p (showTokens ts)
-toClockEntry (Sym "x":Date d:Time t:Sym "e":ts) =
-  Just $ Out (makeZonedTime d t) (showTokens ts)
+toClockEntry (Sym "x":Date d:Time t z:Sym "s":Sym p:ts) =
+  Just $ In (makeZonedTime d t z) p (showTokens ts)
+toClockEntry (Sym "x":Date d:Time t z:Sym "e":ts) =
+  Just $ Out (makeZonedTime d t z) (showTokens ts)
 toClockEntry _ = Nothing
 
-makeZonedTime :: Day -> (TimeOfDay, TimeZone) -> ZonedTime
-makeZonedTime d (t, tz) = ZonedTime (LocalTime d t) tz
+makeZonedTime :: Day -> TimeOfDay -> TimeZone -> ZonedTime
+makeZonedTime d t = ZonedTime (LocalTime d t)
 
 clockInEntry :: ZonedTime -> String -> String -> Entry
 clockInEntry t proj text =
@@ -72,5 +72,5 @@ clockOutEntry t text = [Sym "x"] ++ dateTime t ++ [Sym "e"] ++ tokenize text
 
 dateTime :: ZonedTime -> [Token]
 dateTime t =
-  [Date (localDay local), Time (localTimeOfDay local, zonedTimeZone t)]
+  [Date (localDay local), Time (localTimeOfDay local) (zonedTimeZone t)]
   where local = zonedTimeToLocalTime t
