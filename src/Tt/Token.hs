@@ -1,7 +1,7 @@
 module Tt.Token (
-    Token(Date, Time, Colon, Number, Priority, Sym, Comment, Text),
-    showToken,
-    tokenParser,
+  Token(Date, Time, Colon, Number, Priority, Sym, Comment, Text),
+  showToken,
+  tokenParser,
 ) where
 
 import           Control.Monad
@@ -35,14 +35,14 @@ data Token =
 showToken :: Token -> String
 showToken (Date d) = show d
 -- Don't show fractional seconds.
-showToken (Time (t, z)) = formatTime defaultTimeLocale "%H:%M:%S%z"
-                          (toZonedTime t z)
-showToken (Colon t u) = showToken t ++ ":" ++ showToken u
-showToken (Number n) = showRat n
+showToken (Time (t, z)) =
+  formatTime defaultTimeLocale "%H:%M:%S%z" (toZonedTime t z)
+showToken (Colon t u  ) = showToken t ++ ":" ++ showToken u
+showToken (Number   n ) = showRat n
 showToken (Priority ch) = printf "(%c)" ch
-showToken (Comment c) = printf "--%s" c
-showToken (Sym t) = t
-showToken (Text t) = t
+showToken (Comment  c ) = printf "--%s" c
+showToken (Sym      t ) = t
+showToken (Text     t ) = t
 
 toZonedTime :: TimeOfDay -> TimeZone -> ZonedTime
 toZonedTime t = ZonedTime (LocalTime (ModifiedJulianDay 0) t)
@@ -50,14 +50,22 @@ toZonedTime t = ZonedTime (LocalTime (ModifiedJulianDay 0) t)
 
 -- | Parse a string into a Token
 tokenParser :: Parser Token
-tokenParser = wrap date <|> wrap zonedTime <|> wrap colon <|> wrap number <|>
-              wrap priority <|> wrap sym <|> wrap comment <|> wrap text
-  where
-    wrap :: Parser Token -> Parser Token
-    wrap parser = try (parser <* (eof <|> void (many1 space)))
+tokenParser =
+  wrap date
+    <|> wrap zonedTime
+    <|> wrap colon
+    <|> wrap number
+    <|> wrap priority
+    <|> wrap sym
+    <|> wrap comment
+    <|> wrap text
+ where
+  wrap :: Parser Token -> Parser Token
+  wrap parser = try (parser <* (eof <|> void (many1 space)))
 
 date :: Parser Token
-date = Date <$> (fromGregorian <$> year <* char '-' <*> month <* char '-' <*> day)
+date =
+  Date <$> (fromGregorian <$> year <* char '-' <*> month <* char '-' <*> day)
 
 zonedTime :: Parser Token
 zonedTime = Time <$> ((,) <$> timeOfDay <*> zoneOffset)
@@ -75,7 +83,8 @@ sym :: Parser Token
 sym = Sym <$> symbol
 
 comment :: Parser Token
-comment = Comment <$> (string "--" *> manyTill anyChar (void (char '\n') <|> eof))
+comment =
+  Comment <$> (string "--" *> manyTill anyChar (void (char '\n') <|> eof))
 
 text :: Parser Token
 text = Text <$> many1 (satisfy (not . isSpace))
@@ -86,19 +95,19 @@ text = Text <$> many1 (satisfy (not . isSpace))
 
 symbol :: Parser String
 symbol = (:) <$> firstChar <*> many restChars
-  where
-    firstChar = letter <|> oneOf "_+@"
-    restChars = letter <|> digit <|> oneOf "_+@-"
+ where
+  firstChar = letter <|> oneOf "_+@"
+  restChars = letter <|> digit <|> oneOf "_+@-"
 
 timeOfDay :: Parser TimeOfDay
 timeOfDay = TimeOfDay <$> hour <* char ':' <*> minute <* char ':' <*> second
 
 zoneOffset :: Parser TimeZone
 zoneOffset = negativeZone <|> positiveZone
-  where
-    negativeZone = (minutesToTimeZone . negate) <$> (char '-' *> hhmmToMinutes)
-    positiveZone = minutesToTimeZone <$> (char '+' *> hhmmToMinutes)
-    hhmmToMinutes = (\h m -> h * 60 + m) <$> hour <*> minute
+ where
+  negativeZone  = (minutesToTimeZone . negate) <$> (char '-' *> hhmmToMinutes)
+  positiveZone  = minutesToTimeZone <$> (char '+' *> hhmmToMinutes)
+  hhmmToMinutes = (\h m -> h * 60 + m) <$> hour <*> minute
 
 year :: Parser Integer
 year = read <$> count 4 digit
@@ -120,19 +129,22 @@ second = fromIntegral <$> belowHundred 5
 
 -- | Match two-digit numbers up to n * 10 + 9.
 belowHundred :: Int -> Parser Integer
-belowHundred n = read <$> ((:) <$> oneOf ['0' .. intToDigit n] <*> count 1 digit)
+belowHundred n =
+  read <$> ((:) <$> oneOf ['0' .. intToDigit n] <*> count 1 digit)
 
 plusMinus :: Parser Rational
 plusMinus =
-    (negate <$> (char '-' *> decimal)) <|>
-    (char '+' *> decimal) <|>
-    decimal
+  (negate <$> (char '-' *> decimal)) <|> (char '+' *> decimal) <|> decimal
 
 decimal :: Parser Rational
-decimal = try ((+) <$> (fromIntegral <$> integer) <*> fraction) <|> (fromIntegral <$> integer)
+decimal =
+  try ((+) <$> (fromIntegral <$> integer) <*> fraction)
+    <|> (fromIntegral <$> integer)
 
 fraction :: Parser Rational
-fraction = (\x -> fromIntegral (read x :: Integer) / (10 ^ length x)) <$> (char '.' *> many1 digit)
+fraction =
+  (\x -> fromIntegral (read x :: Integer) / (10 ^ length x))
+    <$> (char '.' *> many1 digit)
 
 integer :: Parser Integer
 integer = read <$> many1 digit
