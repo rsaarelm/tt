@@ -2,16 +2,17 @@ module Main where
 
 import           Control.Monad
 import           Data.Maybe
-import           Data.Semigroup      ((<>))
+import           Data.Semigroup            ((<>))
 import           Data.Time
+import           Numeric.Interval.NonEmpty
 import           Options.Applicative
 import           Text.Printf
 import           Tt.Clock
 import           Tt.Db
 import           Tt.Goal
-import           Tt.Session
 import           Tt.Todo
 import           Tt.Util
+import           Tt.Work
 
 main :: IO ()
 main =
@@ -90,8 +91,9 @@ clockOut text = do
 
 getCurrentProject :: IO (Maybe String)
 getCurrentProject = do
-  clockDb <- clocks <$> db
-  return $ currentProject clockDb
+  d   <- loadDb
+  now <- getZonedTime
+  return $ currentProject (parseWork now d)
 
 
 todo :: [String] -> IO ()
@@ -117,39 +119,41 @@ done text = do
 
 timeclock :: IO ()
 timeclock = do
-  clockDb <- clocks <$> db
+  clockDb <- clocks <$> loadDb
   mapM_ (putStrLn . asTimeclock) clockDb
 
 
 current :: IO ()
 current = do
-  clockDb <- clocks <$> db
-  now     <- getZonedTime
-  let current = currentProject clockDb
-  let currentWork =
-        filter (\x -> Just (sessionProject x) == current) (sessions now clockDb)
-  case current of
+  db  <- loadDb
+  now <- getZonedTime
+  let work = parseWork now db
+  case currentProject work of
     Just project -> do
-      let todaysWork = mapMaybe (clamp (daySpan now)) currentWork
-      let todaysTime = sum $ map sessionLength todaysWork
+      let todaysTime = duration $ onCurrentProject work `during` today now
       printf "%s %s\n" project (showHours todaysTime)
     Nothing -> return ()
 
 
+-- XXX: This could be less messy...
 balance :: Maybe String -> IO ()
 balance proj = do
-  currentProject <- getCurrentProject
-  case proj <|> currentProject of
-    Just project -> printBalance project
+  db  <- loadDb
+  now <- getZonedTime
+  let work = parseWork now db
+  case proj <|> currentProject work of
+    Just project -> printBalance now work project
     Nothing      -> putStrLn "No project specified or currently clocked in."
  where
-  printBalance project = do
-    clockDb <- clocks <$> db
-    now     <- getZonedTime
-    let work =
-          mapMaybe (clamp (untilYesterday now)) (projectSessions now clockDb)
-    let numDays      = daysCovered (zonedTimeZone now) work
-    let amountWorked = sum $ map sessionLength work
+  printBalance now work project =
+    case thisMonth now `intersection` before (today now) of
+      Just t  -> printBalance' t work project
+      Nothing -> return ()
+  printBalance' :: Interval LocalTime -> WorkState -> String -> IO ()
+  printBalance' t work project = do
+    let stuff        = work `onProject` project `during` t
+    let amountWorked = duration stuff
+    let numDays      = daysCovered (mapMaybe workInterval stuff)
     let nominalHour  = nominalDay / 24
     -- TODO: Make the expected daily hours configurable.
     let targetAmount = nominalHour * 7.5 * fromIntegral numDays
@@ -159,20 +163,12 @@ balance proj = do
            numDays
            project
     printf "Flexitime balance %s\n" (showHours balance)
-   where
-    projectSessions now clockDb =
-      filter (\x -> sessionProject x == project) (sessions now clockDb)
 
-untilYesterday :: ZonedTime -> (UTCTime, UTCTime)
-untilYesterday t = (begin, end)
- where
-  (begin, _) = monthSpan t
-  (end  , _) = daySpan t
 
 
 goals :: IO ()
 goals = do
-  entryDb <- db
+  entryDb <- loadDb
   now     <- getZonedTime
   let today = (localDay . zonedTimeToLocalTime) now
   let goals = activeGoals entryDb today
@@ -196,8 +192,8 @@ printGoal db day goal = printf
   dayScore                     = truncate daysAhead :: Int
 
 
-db :: IO Db
-db = do
+loadDb :: IO Db
+loadDb = do
   conf <- dbConf
   readDb conf
 

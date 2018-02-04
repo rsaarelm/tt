@@ -19,14 +19,15 @@ library
   exposed-modules:     Tt.Clock
                        Tt.Db
                        Tt.Goal
-                       Tt.Session
                        Tt.Todo
                        Tt.Token
                        Tt.Util
+                       Tt.Work
   default-language:    Haskell2010
   build-depends:       base,
                        directory,
                        filepath,
+                       intervals,
                        parsec,
                        time
 
@@ -38,13 +39,14 @@ executable tt
   other-modules:       Tt.Clock
                        Tt.Db
                        Tt.Goal
-                       Tt.Session
                        Tt.Todo
                        Tt.Token
                        Tt.Util
+                       Tt.Work
   build-depends:       base,
                        directory,
                        filepath,
+                       intervals,
                        optparse-applicative,
                        parsec,
                        time

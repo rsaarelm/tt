@@ -1,8 +1,9 @@
 module Tt.Clock (
   ClockEntry(In, Out),
-  ClockDb,
   clocks,
-  currentProject,
+  closeClocks,
+  clockWork,
+  openProject,
   asTimeclock,
   clockInEntry,
   clockOutEntry,
@@ -11,18 +12,19 @@ module Tt.Clock (
 import           Data.List
 import           Data.Maybe
 import           Data.Time
+import           Debug.Trace
+import           Numeric.Interval.NonEmpty
 import           Tt.Db
 import           Tt.Token
+import           Tt.Util
 
 data ClockEntry =
     In ZonedTime String String
   | Out ZonedTime String
     deriving (Show)
 
-type ClockDb = [ClockEntry]
-
 -- | Convert database to sorted clock data
-clocks :: Db -> ClockDb
+clocks :: Db -> [ClockEntry]
 clocks db = sortBy clockOrd clockLines
  where
   clockLines = mapMaybe toClockEntry db
@@ -31,12 +33,29 @@ clocks db = sortBy clockOrd clockLines
   sortKey (In t _ _) = (zonedTimeToUTC t, 1)
   sortKey (Out t _ ) = (zonedTimeToUTC t, 0)
 
+-- | If clocks end with an unmatched clock-in, add a clock out for the given
+-- time.
+closeClocks :: ZonedTime -> [ClockEntry] -> [ClockEntry]
+closeClocks now [x@In{}] = [x, Out now ""]
+closeClocks now (x:xs  ) = x : closeClocks now xs
+closeClocks _   []       = []
+
+
+-- | Build intervals associated with projects from the clock sequence.
+clockWork :: [ClockEntry] -> [(String, Interval UTCOrd)]
+clockWork (In t1 project _:Out t2 _:ts) =
+  (project, UTCOrd t1 ... UTCOrd t2) : clockWork ts
+clockWork (In{}   :ts) = trace "Unmatched clock in" clockWork ts
+clockWork (Out _ _:ts) = trace "Unmatched clock out" clockWork ts
+clockWork []           = []
+
+
 -- | Show currently clocked project from a ClockEntry sequence.
 -- NB: Function assumes the entries are sorted.
-currentProject :: ClockDb -> Maybe String
-currentProject []            = Nothing
-currentProject [In _ name _] = Just name
-currentProject (_:xs       ) = currentProject xs
+openProject :: [ClockEntry] -> Maybe String
+openProject []            = Nothing
+openProject [In _ name _] = Just name
+openProject (_:xs       ) = openProject xs
 
 -- | Show a ClockEntry as a timeclock log line.
 asTimeclock :: ClockEntry -> String
