@@ -100,7 +100,7 @@ symbol = (:) <$> firstChar <*> many restChars
   restChars = letter <|> digit <|> oneOf "_+@-"
 
 timeOfDay :: Parser TimeOfDay
-timeOfDay = TimeOfDay <$> hour <* char ':' <*> minute <* char ':' <*> second
+timeOfDay = TimeOfDay <$> hour <* char ':' <*> minute <*> option 0 (char ':' *> second)
 
 zoneOffset :: Parser TimeZone
 zoneOffset = negativeZone <|> positiveZone

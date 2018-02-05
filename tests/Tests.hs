@@ -16,6 +16,9 @@ main = hspec $ describe "Token parser" $ do
   it "parses time of day" $ parseToken "18:32:43+0200" `shouldBe` Time
     (TimeOfDay 18 32 43)
     (minutesToTimeZone 120)
+  it "parses time of day without seconds" $ parseToken "18:32+0200" `shouldBe` Time
+    (TimeOfDay 18 32 00)
+    (minutesToTimeZone 120)
   it "parses time of day with negative tz"
     $          parseToken "18:32:43-0330"
     `shouldBe` Time (TimeOfDay 18 32 43) (minutesToTimeZone (-210))
