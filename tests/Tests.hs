@@ -15,13 +15,19 @@ main = hspec $ describe "Token parser" $ do
     `shouldBe` (Date $ fromGregorian 2012 12 21)
   it "parses time of day" $ parseToken "18:32:43+0200" `shouldBe` Time
     (TimeOfDay 18 32 43)
-    (minutesToTimeZone 120)
+    (Just $ minutesToTimeZone 120)
   it "parses time of day without seconds" $ parseToken "18:32+0200" `shouldBe` Time
     (TimeOfDay 18 32 00)
-    (minutesToTimeZone 120)
+    (Just $ minutesToTimeZone 120)
+  it "parses time of day without time zone" $ parseToken "18:32:43" `shouldBe` Time
+    (TimeOfDay 18 32 43)
+    Nothing
+  it "parses time of day without time zone or seconds" $ parseToken "18:32" `shouldBe` Time
+    (TimeOfDay 18 32 00)
+    Nothing
   it "parses time of day with negative tz"
     $          parseToken "18:32:43-0330"
-    `shouldBe` Time (TimeOfDay 18 32 43) (minutesToTimeZone (-210))
+    `shouldBe` Time (TimeOfDay 18 32 43) (Just $ minutesToTimeZone (-210))
   it "parses project identifiers" $ parseToken "+stuff" `shouldBe` Sym "+stuff"
   it "parses attributes with string values"
     $          parseToken "prio:C"

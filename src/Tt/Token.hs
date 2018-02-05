@@ -15,28 +15,24 @@ import           Tt.Util
 
 -- | Parts of a todo.txt line item
 data Token =
-    Date Day                    -- ^ A calendar date, YYYY-mm-dd
-
-  | Time TimeOfDay TimeZone     -- ^ A time of day, HH:MM:SS-HHMM
-                                --
-                                --   (we really want ZonedTime here but it
-                                --   doesn't implement Eq which we want to
-                                --   derive for the Token type)
-
-  | Colon Token Token           -- ^ Name value pair
-  | Number Rational             -- ^ A numerical value, 1, -8 or 3.1415
-  | Priority Char               -- ^ Priority tag, "(A)" etc.
-  | Sym String                  -- ^ A symbolic identifier
-  | Comment String              -- ^ Comment text after a double hyphen
-  | Text String                 -- ^ Whitespace separated anything else
+    Date Day                        -- ^ A calendar date, YYYY-mm-dd
+  | Time TimeOfDay (Maybe TimeZone) -- ^ A time of day, HH:MM(:SS)(-HHMM)
+  | Colon Token Token               -- ^ Name value pair
+  | Number Rational                 -- ^ A numerical value, 1, -8 or 3.1415
+  | Priority Char                   -- ^ Priority tag, "(A)" etc.
+  | Sym String                      -- ^ A symbolic identifier
+  | Comment String                  -- ^ Comment text after a double hyphen
+  | Text String                     -- ^ Whitespace separated anything else
     deriving (Eq, Show)
 
 -- | Pretty-print a Token
 showToken :: Token -> String
 showToken (Date d) = show d
 -- Don't show fractional seconds.
-showToken (Time t z) =
+showToken (Time t (Just z)) =
   formatTime defaultTimeLocale "%H:%M:%S%z" (toZonedTime t z)
+showToken (Time t Nothing) =
+  formatTime defaultTimeLocale "%H:%M:%S" t
 showToken (Colon t u  ) = showToken t ++ ":" ++ showToken u
 showToken (Number   n ) = showRat n
 showToken (Priority ch) = printf "(%c)" ch
@@ -68,7 +64,7 @@ date =
   Date <$> (fromGregorian <$> year <* char '-' <*> month <* char '-' <*> day)
 
 zonedTime :: Parser Token
-zonedTime = Time <$> timeOfDay <*> zoneOffset
+zonedTime = Time <$> timeOfDay <*> optionMaybe zoneOffset
 
 colon :: Parser Token
 colon = Colon <$> sym <* char ':' <*> (sym <|> date <|> zonedTime <|> number)
