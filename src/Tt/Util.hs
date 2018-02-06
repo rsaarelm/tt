@@ -6,9 +6,8 @@ module Tt.Util (
   yesterday,
   before,
   daysCovered,
-  UTCOrd(UTCOrd),
-  fromUTCOrd,
-  mapUTCOrd
+  addLocalTime,
+  diffLocalTime
 ) where
 
 import           Data.List
@@ -60,27 +59,22 @@ yesterday t = t
 
 -- | Return span before from calendar start to start of the given span.
 --
--- Operates on interval instead of a single UTCOrd for API ergonomics.
+-- Operates on interval instead of a single timepoint for API ergonomics.
 before :: Interval LocalTime -> Interval LocalTime
 before s = LocalTime (ModifiedJulianDay 0) midnight ... inf s
 
 -- | Count the number of separate days a session list covers
-daysCovered :: [Interval UTCOrd] -> Int
+daysCovered :: [Interval LocalTime] -> Int
 daysCovered = length . group . sort . concatMap sessionDays
  where
   sessionDays session = [day (inf session) .. day (sup session)]
-  day (UTCOrd t) = toModifiedJulianDay (localDay $ zonedTimeToLocalTime t)
+  day t = toModifiedJulianDay (localDay t)
 
-newtype UTCOrd = UTCOrd ZonedTime
-instance Ord UTCOrd where
-    compare (UTCOrd x) (UTCOrd y) = compare (zonedTimeToUTC x) (zonedTimeToUTC y)
-instance Eq UTCOrd where
-    (UTCOrd x) == (UTCOrd y) = zonedTimeToUTC x == zonedTimeToUTC y
 
-fromUTCOrd :: UTCOrd -> ZonedTime
-fromUTCOrd (UTCOrd x) = x
+-- XXX: Copied from time 1.9, remove when stack can install 1.9
+addLocalTime :: NominalDiffTime -> LocalTime -> LocalTime
+addLocalTime x = utcToLocalTime utc . addUTCTime x . localTimeToUTC utc
 
-mapUTCOrd :: (UTCTime -> UTCTime) -> UTCOrd -> UTCOrd
-mapUTCOrd f a = UTCOrd $ utcToZonedTime zone $ f
-  (zonedTimeToUTC (fromUTCOrd a))
-  where zone = zonedTimeZone (fromUTCOrd a)
+-- XXX: Copied from time 1.9, remove when stack can install 1.9
+diffLocalTime :: LocalTime -> LocalTime -> NominalDiffTime
+diffLocalTime a b = diffUTCTime (localTimeToUTC utc a) (localTimeToUTC utc b)

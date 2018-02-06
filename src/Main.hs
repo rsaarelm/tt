@@ -91,9 +91,8 @@ clockOut text = do
 
 getCurrentProject :: IO (Maybe String)
 getCurrentProject = do
-  d   <- loadDb
-  now <- getZonedTime
-  return $ currentProject (parseWork now d)
+  work <- loadWork
+  return $ currentProject work
 
 
 todo :: [String] -> IO ()
@@ -119,15 +118,14 @@ done text = do
 
 timeclock :: IO ()
 timeclock = do
-  clockDb <- clocks <$> loadDb
-  mapM_ (putStrLn . asTimeclock) clockDb
+  work <- loadWork
+  mapM_ putStrLn (timeClocks work)
 
 
 current :: IO ()
 current = do
-  db  <- loadDb
   now <- getZonedTime
-  let work = parseWork now db
+  work <- loadWork
   case currentProject work of
     Just project -> do
       let todaysTime = duration $ onCurrentProject work `during` today now
@@ -138,9 +136,8 @@ current = do
 -- XXX: This could be less messy...
 balance :: Maybe String -> IO ()
 balance proj = do
-  db  <- loadDb
   now <- getZonedTime
-  let work = parseWork now db
+  work <- loadWork
   case proj <|> currentProject work of
     Just project -> printBalance now work project
     Nothing      -> putStrLn "No project specified or currently clocked in."
@@ -168,13 +165,13 @@ balance proj = do
 
 goals :: IO ()
 goals = do
-  entryDb <- loadDb
-  now     <- getZonedTime
+  db  <- loadDb
+  now <- getZonedTime
   let today = (localDay . zonedTimeToLocalTime) now
-  let goals = activeGoals entryDb today
+  let goals = activeGoals db today
   printf "Goal              done           ahead by\n"
   printf "-----------------|--------------|----------\n"
-  mapM_ (printGoal entryDb today) goals
+  mapM_ (printGoal db today) goals
 
 printGoal :: Db -> Day -> Goal -> IO ()
 printGoal db day goal = printf
@@ -201,3 +198,9 @@ append :: Entry -> IO ()
 append entry = do
   conf <- dbConf
   dbAppend conf entry
+
+loadWork :: IO WorkState
+loadWork = do
+  db  <- loadDb
+  now <- getZonedTime
+  return (parseWork now db)

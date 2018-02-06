@@ -1,10 +1,5 @@
 module Tt.Clock (
-  ClockEntry(In, Out),
   clocks,
-  closeClocks,
-  clockWork,
-  openProject,
-  asTimeclock,
   clockInEntry,
   clockOutEntry,
 ) where
@@ -16,70 +11,36 @@ import           Debug.Trace
 import           Numeric.Interval.NonEmpty
 import           Tt.Db
 import           Tt.Token
-import           Tt.Util
 
-data ClockEntry =
-    In ZonedTime String String
-  | Out ZonedTime String
-    deriving (Show)
+data ClockDirection = Out | In String deriving (Eq, Ord, Show)
 
--- | Convert database to sorted clock data
-clocks :: Db -> [ClockEntry]
-clocks db = sortBy clockOrd clockLines
+-- | Convert database to sorted clock data and an optional currently open
+--   project.
+clocks :: Db -> ([(String, Interval LocalTime)], Maybe (String, LocalTime))
+clocks db = openAndIntervals parseClocks
  where
-  clockLines = mapMaybe toClockEntry db
-  clockOrd c1 c2 = sortKey c1 `compare` sortKey c2
-  sortKey :: ClockEntry -> (UTCTime, Int)
-  sortKey (In t _ _) = (zonedTimeToUTC t, 1)
-  sortKey (Out t _ ) = (zonedTimeToUTC t, 0)
+  -- Parse entries and sort. Reverse it so that newest is first for the next
+  -- step
+  parseClocks = sortBy (flip compare) (mapMaybe parseEntry db)
+  -- If the newest item opens a work session, grab that as the special open
+  -- project value. Then reverse the remaining list back to chronological
+  -- order and extract work session pairs.
+  openAndIntervals ((begin, In project):revTs) =
+    (clockWork (reverse revTs), Just (project, begin))
+  openAndIntervals revTs = (clockWork (reverse revTs), Nothing)
+  -- TODO: Proper error handling for mismatched clocks, trace is not how
+  -- you're supposed to report user errors.
+  clockWork ((begin, In project):(end, Out):ts) =
+    (project, begin ... end) : clockWork ts
+  clockWork ((_, In _):ts) = trace "Unmatched clock in" clockWork ts
+  clockWork ((_, Out ):ts) = trace "Unmatched clock out" clockWork ts
+  clockWork []             = []
 
--- | If clocks end with an unmatched clock-in, add a clock out for the given
--- time.
-closeClocks :: ZonedTime -> [ClockEntry] -> [ClockEntry]
-closeClocks now [x@In{}] = [x, Out now ""]
-closeClocks now (x:xs  ) = x : closeClocks now xs
-closeClocks _   []       = []
-
-
--- | Build intervals associated with projects from the clock sequence.
-clockWork :: [ClockEntry] -> [(String, Interval UTCOrd)]
-clockWork (In t1 project _:Out t2 _:ts) =
-  (project, UTCOrd t1 ... UTCOrd t2) : clockWork ts
-clockWork (In{}   :ts) = trace "Unmatched clock in" clockWork ts
-clockWork (Out _ _:ts) = trace "Unmatched clock out" clockWork ts
-clockWork []           = []
-
-
--- | Show currently clocked project from a ClockEntry sequence.
--- NB: Function assumes the entries are sorted.
-openProject :: [ClockEntry] -> Maybe String
-openProject []            = Nothing
-openProject [In _ name _] = Just name
-openProject (_:xs       ) = openProject xs
-
--- | Show a ClockEntry as a timeclock log line.
-asTimeclock :: ClockEntry -> String
--- Use unwords to avoid trailing whitespace when 'text' is empty.
-asTimeclock (In t project text) =
-  unwords
-    $  ["i", formatTime defaultTimeLocale "%Y/%m/%d %H:%M:%S%z" t, project]
-    ++ words text
-asTimeclock (Out t text) =
-  unwords
-    $  ["o", formatTime defaultTimeLocale "%Y/%m/%d %H:%M:%S%z" t]
-    ++ words text
-
-
--- | Try to convert an Entry into a ClockEntry
-toClockEntry :: Entry -> Maybe ClockEntry
-toClockEntry (Sym "x":Date d:Time t z:Sym "s":Sym p:ts) =
-  Just $ In (makeZonedTime d t z) p (showTokens ts)
-toClockEntry (Sym "x":Date d:Time t z:Sym "e":ts) =
-  Just $ Out (makeZonedTime d t z) (showTokens ts)
-toClockEntry _ = Nothing
-
-makeZonedTime :: Day -> TimeOfDay -> TimeZone -> ZonedTime
-makeZonedTime d t = ZonedTime (LocalTime d t)
+parseEntry :: Entry -> Maybe (LocalTime, ClockDirection)
+parseEntry (Sym "x":Date d:Time t _:Sym "s":Sym p:_) =
+  Just (LocalTime d t, In p)
+parseEntry (Sym "x":Date d:Time t _:Sym "e":_) = Just (LocalTime d t, Out)
+parseEntry _ = Nothing
 
 clockInEntry :: ZonedTime -> String -> String -> Entry
 clockInEntry t proj text =
@@ -88,8 +49,7 @@ clockInEntry t proj text =
 clockOutEntry :: ZonedTime -> String -> Entry
 clockOutEntry t text = [Sym "x"] ++ dateTime t ++ [Sym "e"] ++ tokenize text
 
-
 dateTime :: ZonedTime -> [Token]
 dateTime t =
-  [Date (localDay local), Time (localTimeOfDay local) (zonedTimeZone t)]
+  [Date (localDay local), Time (localTimeOfDay local) (Just $ zonedTimeZone t)]
   where local = zonedTimeToLocalTime t

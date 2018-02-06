@@ -6,13 +6,16 @@ module Tt.Work (
   onProject,
   onCurrentProject,
   duration,
-  during
+  during,
+  timeClocks
 ) where
 
 import           Control.Arrow             (second)
+import           Data.Function
+import           Data.List
 import           Data.Maybe
 import           Data.Time                 hiding (parseTime)
-import           Numeric.Interval.NonEmpty hiding (inflate)
+import           Numeric.Interval.NonEmpty
 import           Tt.Clock
 import           Tt.Db
 import           Tt.Token
@@ -24,7 +27,7 @@ type Unit = Maybe String
 data WorkState = WorkState {
   currentProject :: Maybe Project,
   projectUnits   :: [(Project, WorkUnit)]
-}
+} deriving (Show)
 
 -- | An unit of work done on a project
 --
@@ -32,21 +35,29 @@ data WorkState = WorkState {
 -- occurring at a specific timepoint.
 data WorkUnit =
     Quantity Day Rational Unit
-  | Span (Interval UTCOrd)
+  | Span (Interval LocalTime)
+    deriving (Show)
+
+unitStartTime :: WorkUnit -> LocalTime
+unitStartTime (Quantity day _ _) = LocalTime day midday
+unitStartTime (Span s          ) = inf s
 
 -- | Parse work entries from data.
 --
 -- Needs current time in case there's an open clock entry that extends to the
 -- present
 parseWork :: ZonedTime -> Db -> WorkState
-parseWork now db = WorkState (openProject rawClocks)
-                             (singleEntries ++ clockSessions)
+parseWork now db = WorkState (fmap fst openProject) $ sortBy
+  (compare `on` unitStartTime . snd)
+  (singleEntries ++ clockSessions ++ currentSession)
  where
-  singleEntries = mapMaybe parseEntry db
-  clockSessions = map (second Span) $ clockWork $ closeClocks now rawClocks
-  rawClocks     = clocks db
+  singleEntries            = mapMaybe parseEntry db
+  clockSessions            = map (second Span) clockWork
+  (clockWork, openProject) = clocks db
+  currentSession           = maybe [] (\x -> [openToSpan x]) openProject
+  openToSpan (name, start) = (name, Span (start ... zonedTimeToLocalTime now))
 
-workInterval :: WorkUnit -> Maybe (Interval UTCOrd)
+workInterval :: WorkUnit -> Maybe (Interval LocalTime)
 workInterval (Span s) = Just s
 workInterval _        = Nothing
 
@@ -64,36 +75,28 @@ parseEntry entry = do
   (project, es')  <- parseProject es
   return (project, parseValue day time es')
  where
-  parseTime (Sym "x":Date day:Time t z:es) =
-    Just (day, UTCOrd (ZonedTime (LocalTime day t) z), es)
-  parseTime (Sym "x":Date day:es) =
-    -- XXX: Span datapoints without a zoned time of day will default to UTC
-    -- midday, this will cause them to fall between days if you're a +1200
-    -- time zone.
-    Just (day, UTCOrd (ZonedTime (LocalTime day midday) utc), es)
+  parseTime (Sym "x":Date day:Time t _:es) = Just (day, LocalTime day t, es)
+  parseTime (Sym "x":Date day:es) = Just (day, LocalTime day midday, es)
   parseTime _ = Nothing
 
   parseProject (Sym project:es) = Just (project, es)
   parseProject _                = Nothing
 
-  parseValue _ t (Number num:Sym "h":_) = Span
-    (inflate (fromIntegral (truncate (num * 1800) :: Integer)) (singleton t))
+  parseValue _ t (Number num:Sym "h":_) =
+    Span
+      $   t
+      ... addLocalTime (fromIntegral (truncate (num * 3600) :: Integer)) t
   parseValue _ t (Number num:Sym "min":_) =
-    Span (inflate (fromIntegral (truncate (num * 30) :: Integer)) (singleton t))
+    Span $ t ... addLocalTime (fromIntegral (truncate (num * 60) :: Integer)) t
   parseValue day _ (Number num:Sym unit:_) = Quantity day num (Just unit)
   parseValue day _ (Number num         :_) = Quantity day num Nothing
   parseValue day _ _                       = Quantity day 1 Nothing
 
-inflate :: NominalDiffTime -> Interval UTCOrd -> Interval UTCOrd
-inflate dt i =
-  mapUTCOrd (addUTCTime (-dt)) (inf i) ... mapUTCOrd (addUTCTime dt) (sup i)
-
 duration :: [WorkUnit] -> NominalDiffTime
 duration units = sum $ map unitDuration units
  where
-  unitDuration (Span s) = u (sup s) `diffUTCTime` u (inf s)
+  unitDuration (Span s) = sup s `diffLocalTime` inf s
   unitDuration _        = 0
-  u = zonedTimeToUTC . fromUTCOrd
 
 
 during :: [WorkUnit] -> Interval LocalTime -> [WorkUnit]
@@ -107,9 +110,19 @@ intersectWork :: Interval LocalTime -> WorkUnit -> Maybe WorkUnit
 intersectWork s x@(Quantity day _ _) | time `member` s = Just x
   where time = LocalTime day midday
 intersectWork _ Quantity{}      = Nothing
-intersectWork s (Span workSpan) = Span <$> workSpan'
+intersectWork s (Span workSpan) = Span <$> s `intersection` workSpan
+
+-- | Show a ClockEntry as a timeclock log line.
+timeClocks :: WorkState -> [String]
+timeClocks state = toClocks (projectUnits state)
  where
-  workSpan' = intersection
-    workSpan
-    (zonify (inf workSpan) (inf s) ... zonify (sup workSpan) (sup s))
-  zonify (UTCOrd zt) lt = UTCOrd $ ZonedTime lt (zonedTimeZone zt)
+  -- XXX: Currently open task will be shown as closed at the time the command
+  -- was run.
+  toClocks ((name, Span s):ws) =
+    [ unwords
+        ["i", formatTime defaultTimeLocale "%Y/%m/%d %H:%M:%S" (inf s), name]
+      , unwords ["o", formatTime defaultTimeLocale "%Y/%m/%d %H:%M:%S" (sup s)]
+      ]
+      ++ toClocks ws
+  toClocks (_:ws) = toClocks ws
+  toClocks []     = []

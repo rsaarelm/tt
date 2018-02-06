@@ -108,3 +108,11 @@ You can view ongoing goals and recently completed ones with
 This will list your ongoing goals, how far along to completion they are and
 whether you're ahead or behind your expected schedule of steadily completing
 them.
+
+## Bugs
+
+Time tracking currently throws away time zone information, so clock in / clock
+out pairs that change time zone offset will result in wrong interval sizes and
+may cause parse errors if the local time of the clock out is earlier than the
+local time of the clock in. This will happen if the work session spans a
+daylight saving time transition.
