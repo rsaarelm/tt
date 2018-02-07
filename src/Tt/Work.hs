@@ -38,9 +38,9 @@ data WorkUnit =
   | Span (Interval LocalTime)
     deriving (Show)
 
-unitStartTime :: WorkUnit -> LocalTime
-unitStartTime (Quantity day _ _) = LocalTime day midday
-unitStartTime (Span s          ) = inf s
+instance AsTimeInterval WorkUnit where
+  asTimeInterval (Quantity day _ _) = singleton $ LocalTime day midday
+  asTimeInterval (Span s          ) = s
 
 -- | Parse work entries from data.
 --
@@ -48,7 +48,7 @@ unitStartTime (Span s          ) = inf s
 -- present
 parseWork :: ZonedTime -> Db -> WorkState
 parseWork now db = WorkState (fmap fst openProject) $ sortBy
-  (compare `on` unitStartTime . snd)
+  (compare `on` inf . asTimeInterval . snd)
   (singleEntries ++ clockSessions ++ currentSession)
  where
   singleEntries            = mapMaybe parseEntry db

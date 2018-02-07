@@ -7,7 +7,8 @@ module Tt.Util (
   before,
   daysCovered,
   addLocalTime,
-  diffLocalTime
+  diffLocalTime,
+  AsTimeInterval(asTimeInterval)
 ) where
 
 import           Data.List
@@ -78,3 +79,6 @@ addLocalTime x = utcToLocalTime utc . addUTCTime x . localTimeToUTC utc
 -- XXX: Copied from time 1.9, remove when stack can install 1.9
 diffLocalTime :: LocalTime -> LocalTime -> NominalDiffTime
 diffLocalTime a b = diffUTCTime (localTimeToUTC utc a) (localTimeToUTC utc b)
+
+class AsTimeInterval a where
+  asTimeInterval :: a -> Interval LocalTime
