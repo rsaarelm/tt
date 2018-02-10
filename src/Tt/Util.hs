@@ -8,6 +8,7 @@ module Tt.Util (
   daysCovered,
   addLocalTime,
   diffLocalTime,
+  intervalDuration,
   AsTimeInterval(asTimeInterval)
 ) where
 
@@ -31,16 +32,22 @@ showHours d = printf "%.1f h" $ realToFrac d / (3600 :: Double)
 
 -- XXX: The calendar interval formulas are gross, can they be made cleaner?
 
+today :: IO (Interval LocalTime)
+today = dayOf <$> getZonedTime
+
 -- | Time span for day of the given time stamp.
-today :: ZonedTime -> Interval LocalTime
-today now = start ... end
+dayOf :: ZonedTime -> Interval LocalTime
+dayOf now = start ... end
  where
   start = (zonedTimeToLocalTime now) { localTimeOfDay = midnight }
   end   = start { localDay = addDays 1 (localDay start) }
 
+thisMonth :: IO (Interval LocalTime)
+thisMonth = monthOf <$> getZonedTime
+
 -- | Time span for the month of the given time stamp.
-thisMonth :: ZonedTime -> Interval LocalTime
-thisMonth now = start ... end
+monthOf :: ZonedTime -> Interval LocalTime
+monthOf now = start ... end
  where
   start = startOfMonth (zonedTimeToLocalTime now)
   end   = endOfMonth (zonedTimeToLocalTime now)
@@ -79,6 +86,9 @@ addLocalTime x = utcToLocalTime utc . addUTCTime x . localTimeToUTC utc
 -- XXX: Copied from time 1.9, remove when stack can install 1.9
 diffLocalTime :: LocalTime -> LocalTime -> NominalDiffTime
 diffLocalTime a b = diffUTCTime (localTimeToUTC utc a) (localTimeToUTC utc b)
+
+intervalDuration :: Interval LocalTime -> NominalDiffTime
+intervalDuration i = sup i `diffLocalTime` inf i
 
 class AsTimeInterval a where
   asTimeInterval :: a -> Interval LocalTime

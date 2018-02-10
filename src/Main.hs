@@ -7,10 +7,10 @@ import           Data.Time
 import           Numeric.Interval.NonEmpty
 import           Options.Applicative
 import           Text.Printf
-import           Tt.Clock
 import           Tt.Db
+import           Tt.Entry
 import           Tt.Goal
-import           Tt.Todo
+import qualified Tt.Msg                    as Msg
 import           Tt.Util
 import           Tt.Work
 
@@ -76,7 +76,7 @@ clockIn project text = do
   current <- getCurrentProject
   when (isJust current) (clockOut [])
   now <- getZonedTime
-  append $ clockInEntry now project (unwords text)
+  append $ Msg.clockIn now project (unwords text)
   printf "Clocked into %s.\n" project
 
 clockOut :: [String] -> IO ()
@@ -85,7 +85,7 @@ clockOut text = do
   case current of
     Just project -> do
       now <- getZonedTime
-      append $ clockOutEntry now (unwords text)
+      append $ Msg.clockOut now (unwords text)
       printf "Clocked out of %s.\n" project
     Nothing -> printf "Error: Not clocked in a project.\n"
 
@@ -98,10 +98,9 @@ getCurrentProject = do
 todo :: [String] -> IO ()
 todo text = do
   now <- getZonedTime
-  let msg   = unwords text
-  let entry = todoEntry now msg
-  append entry
-  printf "Todo task added: %s\n" (showTokens entry)
+  let msg = Msg.todo now (unwords text)
+  append msg
+  printf "Todo task added: %s\n" msg
 
 done :: [String] -> IO ()
 done text = do
@@ -109,84 +108,78 @@ done text = do
   let msg          = unwords text
   -- If the message starts with "^", backdate it to yesterday
   let (now', msg') = puntBack now msg
-  let entry        = doneEntry now' msg'
-  append entry
-  printf "Done task added: %s\n" (showTokens entry)
+  let msg          = Msg.done now' msg'
+  append msg
+  printf "Done task added: %s\n" msg
  where
   puntBack t ('^':cs) = puntBack (yesterday t) cs
   puntBack t s        = (t, s)
 
 timeclock :: IO ()
 timeclock = do
-  work <- loadWork
+  work <- loadUnsealedWork
   mapM_ putStrLn (timeClocks work)
 
 
 current :: IO ()
 current = do
-  now <- getZonedTime
-  work <- loadWork
+  work  <- loadWork
+  today <- today
   case currentProject work of
     Just project -> do
-      let todaysTime = duration $ onCurrentProject work `during` today now
+      let todaysTime = duration $ onCurrentProject work `during` today
       printf "%s %s\n" project (showHours todaysTime)
     Nothing -> return ()
 
 
--- XXX: This could be less messy...
 balance :: Maybe String -> IO ()
 balance proj = do
-  now <- getZonedTime
-  work <- loadWork
-  case proj <|> currentProject work of
-    Just project -> printBalance now work project
-    Nothing      -> putStrLn "No project specified or currently clocked in."
- where
-  printBalance now work project =
-    case thisMonth now `intersection` before (today now) of
-      Just t  -> printBalance' t work project
-      Nothing -> return ()
-  printBalance' :: Interval LocalTime -> WorkState -> String -> IO ()
-  printBalance' t work project = do
-    let stuff        = work `onProject` project `during` t
-    let amountWorked = duration stuff
-    let numDays      = daysCovered (mapMaybe workInterval stuff)
-    let nominalHour  = nominalDay / 24
-    -- TODO: Make the expected daily hours configurable.
-    let targetAmount = nominalHour * 7.5 * fromIntegral numDays
-    let balance      = amountWorked - targetAmount
-    printf "%s hours over %d days this month in project %s\n"
-           (showHours amountWorked)
-           numDays
-           project
-    printf "Flexitime balance %s\n" (showHours balance)
+  thisMonth <- thisMonth
+  today     <- today
+  work      <- loadWork
+  -- Some chances to drop out with a Nothing value, so drop into a Maybe monad
+  (fromMaybe (\_ -> return ()) $ do
+        p        <- proj <|> currentProject work
+        interval <- thisMonth `intersection` before today
+        let sessions = work `onProject` p `during` interval
 
+        let amountWorked = duration sessions
+        let numDays = daysCovered (map asTimeInterval sessions)
+        let nominalHour = nominalDay / 24
+        let targetAmount = nominalHour * 7.5 * fromIntegral numDays
+        let balance = amountWorked - targetAmount
+        return (\_ -> do
+          printf "%s hours over %d days this month in project %s\n"
+                (showHours amountWorked) numDays p
+          printf "Flexitime balance %s\n" (showHours balance))) ()
 
 
 goals :: IO ()
 goals = do
-  db  <- loadDb
+  work <- loadWork
+  goals <- loadGoals
   now <- getZonedTime
-  let today = (localDay . zonedTimeToLocalTime) now
-  let goals = activeGoals db today
-  printf "Goal              done           ahead by\n"
-  printf "-----------------|--------------|----------\n"
-  mapM_ (printGoal db today) goals
+  printf "Goal              done               ahead by\n"
+  printf "-----------------|------------------|----------\n"
+  mapM_ (printGoal work now) goals
 
-printGoal :: Db -> Day -> Goal -> IO ()
-printGoal db day goal = printf
-  "%-17s %-12s  % 5d day%s\n"
-  (goalName goal)
-  ( printf "%s -> %s %s"
-           (showRat currentProgress)
-           (showRat $ goalTarget goal)
-           (fromMaybe "" (goalUnit goal)) :: String
-  )
-  dayScore
-  (if dayScore /= 1 then "s" else "")
- where
-  (currentProgress, daysAhead) = progressStats db day goal
-  dayScore                     = truncate daysAhead :: Int
+printGoal :: WorkState -> ZonedTime -> Goal -> IO ()
+printGoal work now goal = do
+  let daysNow = goal `daysSpanned` now
+  let current = work `towards` goal
+  let start = goalStart current
+  let target = goalTarget goal
+  let total = totalWork current
+  let progressDays = (total - start) * goalDays goal / (target - start)
+  let dayScore = (truncate $ progressDays - daysNow) :: Integer
+  printf "%-17s %-16s  % 5d day%s\n"
+    (goalName goal)
+    ( printf "%s -> %s"
+            (showUnit total (goalUnit goal))
+            (showUnit target (goalUnit goal))
+     :: String)
+    dayScore
+    (if dayScore /= 1 then "s" else "")
 
 
 loadDb :: IO Db
@@ -194,13 +187,26 @@ loadDb = do
   conf <- dbConf
   readDb conf
 
-append :: Entry -> IO ()
+append :: String -> IO ()
 append entry = do
   conf <- dbConf
   dbAppend conf entry
 
 loadWork :: IO WorkState
 loadWork = do
-  db  <- loadDb
+  work <- loadUnsealedWork
+  now  <- getZonedTime
+  return $ seal now work
+
+-- | Unsealed work will not have a session for the currently open project, but
+-- it's what you want if you're printing timeclocks.
+loadUnsealedWork :: IO WorkState
+loadUnsealedWork = do
+  db <- loadDb
+  return (toWorkState db)
+
+loadGoals :: IO [Goal]
+loadGoals = do
+  db <- loadDb
   now <- getZonedTime
-  return (parseWork now db)
+  return $ activeGoals now db

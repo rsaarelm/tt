@@ -1,128 +1,111 @@
 module Tt.Work (
-  WorkState(currentProject),
-  WorkUnit(Quantity, Span),
-  parseWork,
-  workInterval,
-  onProject,
-  onCurrentProject,
+  WorkState(projectSessions),
+  toWorkState,
+  seal,
+  timeClocks,
+  currentProject,
+  intersectWork,
   duration,
   during,
-  timeClocks
+  onProject,
+  onCurrentProject
 ) where
 
-import           Control.Arrow             (second)
-import           Data.Function
 import           Data.List
 import           Data.Maybe
-import           Data.Time                 hiding (parseTime)
+import           Data.Time
+import           Debug.Trace
 import           Numeric.Interval.NonEmpty
-import           Tt.Clock
-import           Tt.Db
-import           Tt.Token
+import           Tt.Entry
+import qualified Tt.Msg                    as Msg
 import           Tt.Util
 
-type Project = String
-type Unit = Maybe String
-
 data WorkState = WorkState {
-  currentProject :: Maybe Project,
-  projectUnits   :: [(Project, WorkUnit)]
-} deriving (Show)
+  currentStart    :: Maybe (Project, LocalTime),
+  projectSessions :: [(Project, Session)]
+}
 
--- | An unit of work done on a project
---
--- Work can be measured as a span of time or with some other quantity and
--- occurring at a specific timepoint.
-data WorkUnit =
-    Quantity Day Rational Unit
-  | Span (Interval LocalTime)
-    deriving (Show)
+toWorkState :: [Entry] -> WorkState
+toWorkState = foldl updateState (WorkState Nothing [])
 
-instance AsTimeInterval WorkUnit where
-  asTimeInterval (Quantity day _ _) = singleton $ LocalTime day midday
-  asTimeInterval (Span s          ) = s
-
--- | Parse work entries from data.
---
--- Needs current time in case there's an open clock entry that extends to the
--- present
-parseWork :: ZonedTime -> Db -> WorkState
-parseWork now db = WorkState (fmap fst openProject) $ sortBy
-  (compare `on` inf . asTimeInterval . snd)
-  (singleEntries ++ clockSessions ++ currentSession)
+-- | Close the current project with the current time to get work up to now
+-- show up as session.
+seal :: ZonedTime -> WorkState -> WorkState
+seal _   (      WorkState Nothing                 x ) = WorkState Nothing x
+seal now state@(WorkState (Just (project, _)) _) = foldl
+  updateState
+  state
+  [ClockOut day (time, Just tz), ClockIn day (time, Just tz) project]
  where
-  singleEntries            = mapMaybe parseEntry db
-  clockSessions            = map (second Span) clockWork
-  (clockWork, openProject) = clocks db
-  currentSession           = maybe [] (\x -> [openToSpan x]) openProject
-  openToSpan (name, start) = (name, Span (start ... zonedTimeToLocalTime now))
+  lt   = zonedTimeToLocalTime now
+  day  = localDay lt
+  time = localTimeOfDay lt
+  tz   = zonedTimeZone now
 
-workInterval :: WorkUnit -> Maybe (Interval LocalTime)
-workInterval (Span s) = Just s
-workInterval _        = Nothing
-
--- | Filter work set to a specific project.
-onProject :: WorkState -> String -> [WorkUnit]
-onProject state name = map snd $ filter ((name ==) . fst) (projectUnits state)
-
-onCurrentProject :: WorkState -> [WorkUnit]
-onCurrentProject state = maybe [] (onProject state) (currentProject state)
-
--- | Parse an entry into a time or quantity describing atomic work item.
-parseEntry :: Entry -> Maybe (Project, WorkUnit)
-parseEntry entry = do
-  (day, time, es) <- parseTime entry
-  (project, es')  <- parseProject es
-  return (project, parseValue day time es')
+timeClocks :: WorkState -> [String]
+timeClocks state = concat $ unfoldr unfoldTimeclock state
  where
-  parseTime (Sym "x":Date day:Time t _:es) = Just (day, LocalTime day t, es)
-  parseTime (Sym "x":Date day:es) = Just (day, LocalTime day midday, es)
-  parseTime _ = Nothing
+  unfoldTimeclock (WorkState Nothing []) = Nothing
+  unfoldTimeclock (WorkState (Just (p, t)) []) =
+    Just ([Msg.timeclockIn t p], WorkState Nothing [])
+  unfoldTimeclock (WorkState c ((p, s):ss)) =
+    Just (clocksFor p (asTimeInterval s), WorkState c ss)
+  clocksFor p i
+    | intervalDuration i > 0
+    = [Msg.timeclockIn (inf i) p, Msg.timeclockOut (sup i)]
+    | otherwise
+    = []
 
-  parseProject (Sym project:es) = Just (project, es)
-  parseProject _                = Nothing
+currentProject :: WorkState -> Maybe Project
+currentProject state = fst <$> currentStart state
 
-  parseValue _ t (Number num:Sym "h":_) =
-    Span
-      $   t
-      ... addLocalTime (fromIntegral (truncate (num * 3600) :: Integer)) t
-  parseValue _ t (Number num:Sym "min":_) =
-    Span $ t ... addLocalTime (fromIntegral (truncate (num * 60) :: Integer)) t
-  parseValue day _ (Number num:Sym unit:_) = Quantity day num (Just unit)
-  parseValue day _ (Number num         :_) = Quantity day num Nothing
-  parseValue day _ _                       = Quantity day 1 Nothing
+updateState :: WorkState -> Entry -> WorkState
+updateState state (ClockIn day (time, _) project) =
+  open state project (LocalTime day time)
+updateState state (ClockOut day (time, _)) = close state (LocalTime day time)
+updateState state (SessionEntry project session) =
+  state { projectSessions = projectSessions state ++ [(project, session)] }
+updateState state (GoalEntry _) = state
 
-duration :: [WorkUnit] -> NominalDiffTime
-duration units = sum $ map unitDuration units
+-- | Modify WorkState with a clock in entry
+open :: WorkState -> Project -> LocalTime -> WorkState
+open state p begin = state { currentStart = modify (currentStart state) }
  where
-  unitDuration (Span s) = sup s `diffLocalTime` inf s
-  unitDuration _        = 0
+  modify Nothing  = Just (p, begin)
+  modify (Just _) = trace "Unmatched clock in" Just (p, begin)
 
+-- | Modify WorkState with a clock out entry
+close :: WorkState -> LocalTime -> WorkState
+close state end = case currentStart state of
+  Just (p, begin) ->
+    WorkState Nothing
+      $  projectSessions state
+      ++ [(p, Session begin (Add t) (Just Duration))]
+    where t = fromIntegral ((truncate $ end `diffLocalTime` begin) :: Integer)
+  Nothing -> trace "Unmatched clock out" state
 
-during :: [WorkUnit] -> Interval LocalTime -> [WorkUnit]
+duration :: [Session] -> NominalDiffTime
+duration ss = sum $ map (intervalDuration . asTimeInterval) ss
+
+during :: [Session] -> Interval LocalTime -> [Session]
 during units s = mapMaybe (intersectWork s) units
 
--- | Intersect a work unit with a local time interval
---
--- If the session is a time span, each end of the local time interval is
--- assigned the time zone of the corresponding span point.
-intersectWork :: Interval LocalTime -> WorkUnit -> Maybe WorkUnit
-intersectWork s x@(Quantity day _ _) | time `member` s = Just x
-  where time = LocalTime day midday
-intersectWork _ Quantity{}      = Nothing
-intersectWork s (Span workSpan) = Span <$> s `intersection` workSpan
+-- | Transform work session to have new time inverval
+imposeInterval :: Session -> Interval LocalTime -> Session
+imposeInterval (Session _ (Add _) (Just Duration)) i = Session
+  (inf i)
+  (Add (fromIntegral (truncate (intervalDuration i) :: Integer)))
+  (Just Duration)
+imposeInterval (Session _ a u) i = Session (inf i) a u
 
--- | Show a ClockEntry as a timeclock log line.
-timeClocks :: WorkState -> [String]
-timeClocks state = toClocks (projectUnits state)
- where
-  -- XXX: Currently open task will be shown as closed at the time the command
-  -- was run.
-  toClocks ((name, Span s):ws) =
-    [ unwords
-        ["i", formatTime defaultTimeLocale "%Y/%m/%d %H:%M:%S" (inf s), name]
-      , unwords ["o", formatTime defaultTimeLocale "%Y/%m/%d %H:%M:%S" (sup s)]
-      ]
-      ++ toClocks ws
-  toClocks (_:ws) = toClocks ws
-  toClocks []     = []
+intersectWork :: Interval LocalTime -> Session -> Maybe Session
+intersectWork i session = case i `intersection` asTimeInterval session of
+  Nothing -> Nothing
+  Just s  -> Just $ imposeInterval session s
+
+onProject :: WorkState -> String -> [Session]
+onProject state name =
+  map snd $ filter ((name ==) . fst) (projectSessions state)
+
+onCurrentProject :: WorkState -> [Session]
+onCurrentProject state = maybe [] (onProject state) (currentProject state)

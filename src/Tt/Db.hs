@@ -1,21 +1,17 @@
 module Tt.Db (
-  Entry,
   Db,
   DbConf,
   dbConf,
   readDb,
-  showTokens,
-  tokenize,
   dbAppend,
 ) where
 
 import           Control.Monad
+import           Data.Maybe
 import           System.Directory (doesFileExist, getHomeDirectory)
 import           System.FilePath  (joinPath)
-import           Text.Parsec
-import           Tt.Token
+import           Tt.Entry
 
-type Entry = [Token]
 type Db = [Entry]
 
 -- | List of paths used for the database, active todo list should be last.
@@ -37,17 +33,8 @@ parseFile path = do
   if exists
     then do
       contents <- readFile path
-      return $ map tokenize $ lines contents
+      return $ mapMaybe parseEntry $ lines contents
     else error ("File " ++ path ++ " not found")
 
-showTokens :: Entry -> String
-showTokens = unwords . map showToken
-
-tokenize :: String -> Entry
-tokenize text = (unwrap . parse tokenParser "") <$> words text
- where
-  unwrap (Right x) = x
-  unwrap (Left  _) = error ("Parsing '" ++ text ++ "' failed.")
-
-dbAppend :: DbConf -> Entry -> IO ()
-dbAppend conf entry = appendFile (last conf) (showTokens entry ++ "\n")
+dbAppend :: DbConf -> String -> IO ()
+dbAppend conf entry = appendFile (last conf) (entry ++ "\n")
