@@ -68,8 +68,8 @@ yesterday t = t
 -- | Return span before from calendar start to start of the given span.
 --
 -- Operates on interval instead of a single timepoint for API ergonomics.
-before :: Interval LocalTime -> Interval LocalTime
-before s = LocalTime (ModifiedJulianDay 0) midnight ... inf s
+before :: Interval LocalTime -> Interval LocalTime -> Maybe (Interval LocalTime)
+a `before` b = a `intersection` (LocalTime (ModifiedJulianDay 0) midnight ... inf b)
 
 -- | Count the number of separate days a session list covers
 daysCovered :: [Interval LocalTime] -> Int

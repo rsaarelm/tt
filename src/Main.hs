@@ -140,7 +140,7 @@ balance proj = do
   -- Some chances to drop out with a Nothing value, so drop into a Maybe monad
   (fromMaybe (\_ -> return ()) $ do
         p        <- proj <|> currentProject work
-        interval <- thisMonth `intersection` before today
+        interval <- thisMonth `before` today
         let sessions = work `onProject` p `during` interval
 
         let amountWorked = duration sessions
