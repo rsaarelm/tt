@@ -33,13 +33,20 @@ data Entry =
 type Project = String
 
 -- | Accumulation of work or setting the current work amount for a project
-data Value a = Add a | Set a deriving (Eq, Show, Functor)
+--
+-- Set tracks both the starting baseline of a Value sequence and the current
+-- value. Folded sequences with Set values can then be described as, say,
+-- going from 93 kg to 81 kg instead of just ending up at 81 kg.
+data Value a = Add a | Set a a deriving (Eq, Show, Functor)
 
 instance Num a => Monoid (Value a) where
   mempty = Add 0
   (Add a) `mappend` (Add b) = Add (a + b)
-  (Set a) `mappend` (Add b) = Set (a + b)
-  _ `mappend` (Set b) = Set b
+  -- Calculate initial baseline from pre-existing addition
+  (Add a) `mappend` (Set b c) = Set (b - a) c
+  -- Update value but maintain original baseline
+  (Set a b) `mappend` (Add c) = Set a (b + c)
+  (Set a _) `mappend` (Set _ b) = Set a b
 
 -- | Unit of the work done for the project
 data Unit = Duration | Named String deriving (Eq, Show)
@@ -128,7 +135,7 @@ entryParser = try clockIn <|> try clockOut <|> try goal <|> try session
 quantity :: Parser (Value Rational, Maybe String)
 quantity = fromMaybe (Add 1, Nothing)
   <$> optionMaybe ((,) <$> tok1 amount <*> optionMaybe (tok symbol))
-  where amount = (Set <$> (string "= " *> number)) <|> (Add <$> number)
+  where amount = ((\x -> Set x x) <$> (string "= " *> number)) <|> (Add <$> number)
 
 donePrefix :: Parser Day
 donePrefix = tok (string "x") *> tok date

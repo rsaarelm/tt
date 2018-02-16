@@ -62,10 +62,10 @@ main = hspec $ describe "Entry parser" $ do
       ("thing", Session (ld 2018 02 10) (Add 12.34) Nothing)
   it "parses setting the quantity" $
     "x 2018-02-10 thing = 27" `shouldParseAsSession`
-      ("thing", Session (ld 2018 02 10) (Set 27) Nothing)
+      ("thing", Session (ld 2018 02 10) (Set 27 27) Nothing)
   it "parses setting the with unit" $
     "x 2018-02-10 odometer = 128 km" `shouldParseAsSession`
-      ("odometer", Session (ld 2018 02 10) (Set 128) (Just $ Named "km"))
+      ("odometer", Session (ld 2018 02 10) (Set 128 128) (Just $ Named "km"))
   it "parses minutes as duration" $
     "x 2018-02-10 job 10 min" `shouldParseAsSession`
       ("job", Session (ld 2018 02 10) (Add 600) (Just Duration))

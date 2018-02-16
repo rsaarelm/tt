@@ -42,8 +42,9 @@ towards state g = mapMaybe match (projectSessions state)
 --
 -- Zero, except if the first value in the work is a Set Value.
 goalStart :: [Session] -> Rational
-goalStart (Session { sessionAmount = Set x }:_) = x
-goalStart _                                     = 0
+goalStart work = case mconcat (map sessionAmount work) of
+  Add _   -> 0
+  Set x _ -> x
 
 goalDays :: Goal -> Rational
 goalDays goal = fromIntegral (truncate days :: Integer)
@@ -51,5 +52,5 @@ goalDays goal = fromIntegral (truncate days :: Integer)
 
 totalWork :: [Session] -> Rational
 totalWork work = case mconcat (map sessionAmount work) of
-  Add x -> x
-  Set x -> x
+  Add x   -> x
+  Set _ x -> x
