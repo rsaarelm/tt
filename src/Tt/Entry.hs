@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveFunctor #-}
 
 module Tt.Entry (
-  Entry(ClockIn, ClockOut, SessionEntry, GoalEntry),
+  Entry(ClockIn, ClockOut, SessionEntry, GoalEntry, EndGoal),
   Project,
   Value(Add, Set),
   Unit(Duration, Named),
@@ -27,6 +27,7 @@ data Entry =
   | ClockOut Day (TimeOfDay, Maybe TimeZone)
   | SessionEntry Project Session
   | GoalEntry Goal
+  | EndGoal Day Project
   deriving (Eq, Show)
 
 -- | Identifier for a project that can be worked on
@@ -89,7 +90,7 @@ parseEntry s = case parse entryParser "" s of
 
 
 entryParser :: Parser Entry
-entryParser = try clockIn <|> try clockOut <|> try goal <|> try session
+entryParser = try clockIn <|> try clockOut <|> try goal <|> try endGoal <|> try session
  where
   clockIn =
     ClockIn <$> donePrefix <*> tok zonedTime <* tok (string "s") <*> tok symbol
@@ -115,6 +116,11 @@ entryParser = try clockIn <|> try clockOut <|> try goal <|> try session
       (multiplier, unit) = convertUnit unitName
       d1 dy = LocalTime dy midnight
       d2 dy = LocalTime (addDays 1 dy) midnight
+
+  endGoal =
+    EndGoal <$> endGoalPrefix <*> tok symbol
+   where
+    endGoalPrefix = tok (string "x") *> tok date <* tok (string "END GOAL")
 
   session :: Parser Entry
   session =

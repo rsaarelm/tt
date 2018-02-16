@@ -66,6 +66,7 @@ updateState state (ClockOut day (time, _)) = close state (LocalTime day time)
 updateState state (SessionEntry project session) =
   state { projectSessions = projectSessions state ++ [(project, session)] }
 updateState state (GoalEntry _) = state
+updateState state (EndGoal _ _) = state
 
 -- | Modify WorkState with a clock in entry
 open :: WorkState -> Project -> LocalTime -> WorkState

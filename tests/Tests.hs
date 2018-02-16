@@ -95,6 +95,9 @@ main = hspec $ describe "Entry parser" $ do
       "flight-training"
       9000
       (Just Duration)
+  it "parses ending a goal" $
+    "x 2018-02-10 END GOAL floss" `shouldParseAs`
+      EndGoal (d 2018 2 10) "floss"
 
 -- Utility functions
 
