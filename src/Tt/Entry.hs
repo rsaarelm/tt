@@ -2,6 +2,7 @@
 
 module Tt.Entry (
   Entry(ClockIn, ClockOut, SessionEntry, GoalEntry, EndGoal),
+  entrySortKey,
   Project,
   Value(Add, Set),
   Unit(Duration, Named),
@@ -29,6 +30,19 @@ data Entry =
   | GoalEntry Goal
   | EndGoal Day Project
   deriving (Eq, Show)
+
+-- | Sort key for the entries
+--
+-- The basic sorting is based on the timestamp of the entry, a secondary
+-- parameter is provided to control sorting of entries that land on the same
+-- timestamp. It's possible to get clock out and clock in entries at the same
+-- timestamp, and the clock in should then be put after the clock out.
+entrySortKey :: Entry -> (LocalTime, Int)
+entrySortKey (ClockIn d (t, _) _) = (LocalTime d t, 1)
+entrySortKey (ClockOut d (t, _))  = (LocalTime d t, 0)
+entrySortKey (SessionEntry _ s)   = (inf $ asTimeInterval s, 0)
+entrySortKey (GoalEntry g)        = (inf $ asTimeInterval g, 0)
+entrySortKey (EndGoal d _)        = (LocalTime (addDays 1 d) midnight, 0)
 
 -- | Identifier for a project that can be worked on
 type Project = String

@@ -7,6 +7,7 @@ module Tt.Db (
 ) where
 
 import           Control.Monad
+import           Data.List
 import           Data.Maybe
 import           System.Directory (doesFileExist, getHomeDirectory)
 import           System.FilePath  (joinPath)
@@ -18,7 +19,7 @@ type Db = [Entry]
 type DbConf = [FilePath]
 
 readDb :: DbConf -> IO Db
-readDb conf = join <$> traverse parseFile conf
+readDb conf = sortOn entrySortKey . join <$> traverse parseFile conf
 
 dbConf :: IO DbConf
 dbConf = traverse homeFilePath ["done.txt", "todo.txt"]
