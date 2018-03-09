@@ -1,5 +1,5 @@
 module Tt.Work (
-  WorkState(projectSessions),
+  WorkState(entries),
   toWorkState,
   seal,
   timeClocks,
@@ -21,21 +21,23 @@ import qualified Tt.Msg                    as Msg
 import           Tt.Util
 
 data WorkState = WorkState {
-  currentStart    :: Maybe (Project, LocalTime),
-  projectSessions :: [(Project, Session)]
+  currentStart :: Maybe (Project, LocalTime),
+  entries      :: [Entry]
 }
 
-toWorkState :: [Entry] -> WorkState
+toWorkState :: [RawEntry] -> WorkState
 toWorkState = foldl updateState (WorkState Nothing [])
 
 -- | Close the current project with the current time to get work up to now
 -- show up as session.
 seal :: ZonedTime -> WorkState -> WorkState
-seal _   (      WorkState Nothing                 x ) = WorkState Nothing x
+seal _   (      WorkState Nothing             x) = WorkState Nothing x
 seal now state@(WorkState (Just (project, _)) _) = foldl
   updateState
   state
-  [ClockOut day (time, Just tz), ClockIn day (time, Just tz) project]
+  [ ClockOut day (time, Just tz)
+  , ClockIn day (time, Just tz) project
+  ]
  where
   lt   = zonedTimeToLocalTime now
   day  = localDay lt
@@ -48,8 +50,10 @@ timeClocks state = concat $ unfoldr unfoldTimeclock state
   unfoldTimeclock (WorkState Nothing []) = Nothing
   unfoldTimeclock (WorkState (Just (p, t)) []) =
     Just ([Msg.timeclockIn t p], WorkState Nothing [])
-  unfoldTimeclock (WorkState c ((p, s):ss)) =
-    Just (clocksFor p (asTimeInterval s), WorkState c ss)
+  unfoldTimeclock (WorkState c (e:es)) =
+    Just (handleEntry e, WorkState c es)
+  handleEntry (SessionEntry p s) = clocksFor p (asTimeInterval s)
+  handleEntry _                  = []
   clocksFor p i
     | intervalDuration i > 0
     = [Msg.timeclockIn (inf i) p, Msg.timeclockOut (sup i)]
@@ -59,14 +63,13 @@ timeClocks state = concat $ unfoldr unfoldTimeclock state
 currentProject :: WorkState -> Maybe Project
 currentProject state = fst <$> currentStart state
 
-updateState :: WorkState -> Entry -> WorkState
+updateState :: WorkState -> RawEntry -> WorkState
 updateState state (ClockIn day (time, _) project) =
   open state project (LocalTime day time)
-updateState state (ClockOut day (time, _)) = close state (LocalTime day time)
-updateState state (SessionEntry project session) =
-  state { projectSessions = projectSessions state ++ [(project, session)] }
-updateState state (GoalEntry _) = state
-updateState state (EndGoal _ _) = state
+updateState state (ClockOut day (time, _)) =
+  close state (LocalTime day time)
+updateState state (CleanEntry e) =
+  state { entries = entries state ++ [e] }
 
 -- | Modify WorkState with a clock in entry
 open :: WorkState -> Project -> LocalTime -> WorkState
@@ -80,8 +83,8 @@ close :: WorkState -> LocalTime -> WorkState
 close state end = case currentStart state of
   Just (p, begin) ->
     WorkState Nothing
-      $  projectSessions state
-      ++ [(p, Session begin (Add t) (Just Duration))]
+      $  entries state
+      ++ [SessionEntry p (Session begin (Add t) (Just Duration))]
     where t = fromIntegral ((truncate $ end `diffLocalTime` begin) :: Integer)
   Nothing -> trace "Unmatched clock out" state
 
@@ -105,8 +108,10 @@ intersectWork i session = case i `intersection` asTimeInterval session of
   Just s  -> Just $ imposeInterval session s
 
 onProject :: WorkState -> String -> [Session]
-onProject state name =
-  map snd $ filter ((name ==) . fst) (projectSessions state)
+onProject state name = mapMaybe grab (entries state)
+ where
+  grab (SessionEntry p s) | p == name = Just s
+  grab _                  = Nothing
 
 onCurrentProject :: WorkState -> [Session]
 onCurrentProject state = maybe [] (onProject state) (currentProject state)

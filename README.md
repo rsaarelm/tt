@@ -70,12 +70,14 @@ todo.txt in once you're happy with them.
 You can use tt to track goals that you work towards cumulatively. Write
 entries using the GOAL tag as follows:
 
-    x 2017-10-01 GOAL run 50 km due:2017-12-01  Half-marathon training
+    x 2017-10-01 GOAL run 10 km  -- Half-marathon training
 
-This sets the start date (2017-10-01), the end date (2017-12-01), the goal
-project name (run) and the target value with an optional unit (50 km).
+This sets the start date (2017-10-01), the goal project name (run) and the
+target weekly goal with an optional unit (10 km). Then system will now expect
+you to log an average of 10 km run every week from now on to keep the goal
+from failing.
 
-You can then log contributions to the goal with subsequent datapoint entries:
+You can log contributions to the goal with subsequent datapoint entries:
 
     x 2017-10-05 run 4 km  Trying out new shoes.
 
@@ -84,7 +86,7 @@ Goals can also be specified without a unit for items that are simple counts.
 For these items, datapoints can omit the number and have an implicit count of
 1:
 
-    x 2017-07-01 GOAL floss 30 due:2017-08-01
+    x 2017-07-01 GOAL floss 6
     x 2017-07-02 floss
 
 The goal and datapoint entries can have trailing comments, these are ignored
@@ -94,12 +96,16 @@ Some goals track a measurement instead of accumulation. You can use =
 (always whitespace separated) to declare an absolute datapoint and set the
 goal value to a specific number instead of adding to the existing value:
 
-    x 2017-03-01 GOAL weight 72 kg due:2017-06-01
+    x 2017-03-01 GOAL weight -0.2 kg
     x 2017-04-02 weight = 76.5 kg
 
 (If you regularly sort the files in your done file, you probably only want to
 have one absolute datapoint per day. Sorting will not preserve the order of
 the datapoints entered during the same day.)
+
+If you want to give up on a goal, use the DROP GOAL directive.
+
+    x 2017-11-02 DROP GOAL run  -- Broken leg
 
 You can view ongoing goals and recently completed ones with
 

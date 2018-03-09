@@ -1,14 +1,14 @@
 {-# LANGUAGE DeriveFunctor #-}
 
 module Tt.Entry (
-  Entry(ClockIn, ClockOut, SessionEntry, GoalEntry, EndGoal),
+  Entry(SessionEntry, StartGoal, EndGoal),
+  RawEntry(ClockIn, ClockOut, CleanEntry),
   entrySortKey,
   Project,
   Value(Add, Set),
   Unit(Duration, Named),
   showUnit,
   Session(Session, sessionTime, sessionAmount, sessionUnit),
-  Goal(Goal, goalSpan, goalName, goalTarget, goalUnit),
   parseEntry,
 ) where
 
@@ -23,12 +23,20 @@ import           Text.Parsec.String        (Parser)
 import           Text.Printf
 import           Tt.Util
 
+-- | Entry data the higher application layers consume
+--
+-- Clock values from raw entries are converted into SessionEntries.
 data Entry =
+    SessionEntry Project Session
+  | StartGoal Day Project Rational (Maybe Unit)
+  | EndGoal Day Project
+  deriving (Eq, Show)
+
+-- | Unsanitized entries with clock values.
+data RawEntry =
     ClockIn Day (TimeOfDay, Maybe TimeZone) Project
   | ClockOut Day (TimeOfDay, Maybe TimeZone)
-  | SessionEntry Project Session
-  | GoalEntry Goal
-  | EndGoal Day Project
+  | CleanEntry Entry
   deriving (Eq, Show)
 
 -- | Sort key for the entries
@@ -37,12 +45,12 @@ data Entry =
 -- parameter is provided to control sorting of entries that land on the same
 -- timestamp. It's possible to get clock out and clock in entries at the same
 -- timestamp, and the clock in should then be put after the clock out.
-entrySortKey :: Entry -> (LocalTime, Int)
+entrySortKey :: RawEntry -> (LocalTime, Int)
 entrySortKey (ClockIn d (t, _) _) = (LocalTime d t, 1)
-entrySortKey (ClockOut d (t, _))  = (LocalTime d t, 0)
-entrySortKey (SessionEntry _ s)   = (inf $ asTimeInterval s, 0)
-entrySortKey (GoalEntry g)        = (inf $ asTimeInterval g, 0)
-entrySortKey (EndGoal d _)        = (LocalTime (addDays 1 d) midnight, 0)
+entrySortKey (ClockOut d (t, _)) = (LocalTime d t, 0)
+entrySortKey (CleanEntry (SessionEntry _ s)) = (inf $ asTimeInterval s, 0)
+entrySortKey (CleanEntry (StartGoal d _ _ _)) = (LocalTime d midnight, 0)
+entrySortKey (CleanEntry (EndGoal d _)) = (LocalTime (addDays 1 d) midnight, 0)
 
 -- | Identifier for a project that can be worked on
 type Project = String
@@ -86,76 +94,64 @@ instance AsTimeInterval Session where
     t ... (fromIntegral (truncate n :: Integer) `addLocalTime` t)
   asTimeInterval s = singleton (sessionTime s)
 
-data Goal = Goal {
-  goalSpan   :: Interval LocalTime,
-  goalName   :: Project,
-  goalTarget :: Rational,
-  goalUnit   :: Maybe Unit
-} deriving (Eq, Show)
-
-instance AsTimeInterval Goal where
-  asTimeInterval = goalSpan
-
 -- | Try to parse a line of text into an Entry
-parseEntry :: String -> Maybe Entry
+parseEntry :: String -> Maybe RawEntry
 parseEntry s = case parse entryParser "" s of
   Right e -> Just e
   Left  _ -> Nothing
 
 
-entryParser :: Parser Entry
-entryParser = try clockIn <|> try clockOut <|> try goal <|> try endGoal <|> try session
+-- | Input entry main parser
+entryParser :: Parser RawEntry
+entryParser =
+  try clockIn <|> try clockOut <|> try goal <|> try endGoal <|> try session
  where
-  clockIn =
-    ClockIn <$> donePrefix <*> tok zonedTime <* tok (string "s") <*> tok symbol
+  clockIn = ClockIn <$> donePrefix <*> tok zonedTime <*  tok (string "s") <*> tok projectName
   clockOut = ClockOut <$> donePrefix <*> tok zonedTime <* tok (string "e")
 
   goal =
-    GoalEntry
-      <$> (buildGoal <$> goalPrefix <*> tok symbol <*> goalQuantity <*> goalDue)
+    CleanEntry
+      <$> (   buildGoal
+          <$> goalPrefix
+          <*> tok projectName
+          <*> tok nonzero
+          <*> optionMaybe (tok symbol)
+          )
    where
     goalPrefix = tok (string "x") *> tok date <* tok (string "GOAL")
-    goalDue    = tok (string "due:" *> date)
-    goalQuantity =
-      try ((,) <$> tok number <*> optionMaybe (tok symbol))
-        <|> (,)
-        <$> tok number
-        <*> pure Nothing
-    buildGoal begin project (target, unitName) end = Goal
-      (d1 begin ... d2 end)
-      project
-      (target * multiplier)
-      unit
-     where
-      (multiplier, unit) = convertUnit unitName
-      d1 dy = LocalTime dy midnight
-      d2 dy = LocalTime (addDays 1 dy) midnight
+    buildGoal :: Day -> String -> Rational -> Maybe String -> Entry
+    buildGoal begin project slope inputUnit = StartGoal begin
+                                                        project
+                                                        (slope * multiplier / 7)
+                                                        unit
+      where (multiplier, unit) = convertUnit inputUnit
 
-  endGoal =
-    EndGoal <$> endGoalPrefix <*> tok symbol
+  endGoal = CleanEntry <$> (EndGoal <$> endGoalPrefix <*> tok projectName)
    where
-    endGoalPrefix = tok (string "x") *> tok date <* tok (string "END GOAL")
+    endGoalPrefix = tok (string "x") *> tok date <* tok (string "DROP GOAL")
 
-  session :: Parser Entry
   session =
-    buildSession
-      <$> donePrefix
-      <*> optionMaybe (tok zonedTime)
-      <*> tok symbol
-      <*> quantity
+    CleanEntry
+      <$> (   buildSession
+          <$> donePrefix
+          <*> optionMaybe (tok zonedTime)
+          <*> tok projectName
+          <*> quantity
+          )
    where
-    buildSession d time project q = SessionEntry
+    buildSession d time project (amount, inputUnit) = SessionEntry
       project
       (Session localtime (fmap (* multiplier) amount) unit)
      where
-      amount             = fst q
-      (multiplier, unit) = convertUnit (snd q)
+      (multiplier, unit) = convertUnit inputUnit
       localtime          = LocalTime d (maybe midday fst time)
 
+-- | Parse a relative or absolute quantity with an optional unit.
 quantity :: Parser (Value Rational, Maybe String)
 quantity = fromMaybe (Add 1, Nothing)
   <$> optionMaybe ((,) <$> tok1 amount <*> optionMaybe (tok symbol))
-  where amount = ((\x -> Set x x) <$> (string "= " *> number)) <|> (Add <$> number)
+ where
+  amount = ((\x -> Set x x) <$> (string "= " *> number)) <|> (Add <$> number)
 
 donePrefix :: Parser Day
 donePrefix = tok (string "x") *> tok date
@@ -181,6 +177,16 @@ date = fromGregorian <$> year <* char '-' <*> month <* char '-' <*> day
 
 zonedTime :: Parser (TimeOfDay, Maybe TimeZone)
 zonedTime = (,) <$> timeOfDay <*> optionMaybe zoneOffset
+
+-- Like symbol, but exclude reserved words
+projectName :: Parser String
+projectName = do
+  sym <- symbol
+  case sym of
+    "GOAL" -> fail "reserved word"
+    "s"    -> fail "reserved word"
+    "e"    -> fail "reserved word"
+    s      -> return s
 
 -- NB: Numbers that start with + can also parse as symbols. If both parses are
 -- valid, try parsing as number first.
@@ -223,6 +229,11 @@ second = fromIntegral <$> belowHundred 5
 belowHundred :: Int -> Parser Integer
 belowHundred n =
   read <$> ((:) <$> oneOf ['0' .. intToDigit n] <*> count 1 digit)
+
+nonzero :: Parser Rational
+nonzero = do
+  num <- number
+  if num == 0 then fail "" else return num
 
 number :: Parser Rational
 number =

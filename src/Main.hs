@@ -138,48 +138,48 @@ balance proj = do
   today     <- today
   work      <- loadWork
   -- Some chances to drop out with a Nothing value, so drop into a Maybe monad
-  (fromMaybe (\_ -> return ()) $ do
-        p        <- proj <|> currentProject work
-        interval <- thisMonth `before` today
-        let sessions = work `onProject` p `during` interval
+  ( fromMaybe (\_ -> return ()) $ do
+      p        <- proj <|> currentProject work
+      interval <- thisMonth `before` today
+      let sessions     = work `onProject` p `during` interval
 
-        let amountWorked = duration sessions
-        let numDays = daysCovered (map asTimeInterval sessions)
-        let nominalHour = nominalDay / 24
-        let targetAmount = nominalHour * 7.5 * fromIntegral numDays
-        let balance = amountWorked - targetAmount
-        return (\_ -> do
+      let amountWorked = duration sessions
+      let numDays      = daysCovered (map asTimeInterval sessions)
+      let nominalHour  = nominalDay / 24
+      let targetAmount = nominalHour * 7.5 * fromIntegral numDays
+      let balance      = amountWorked - targetAmount
+      return
+        ( \_ -> do
           printf "%s hours over %d days this month in project %s\n"
-                (showHours amountWorked) numDays p
-          printf "Flexitime balance %s\n" (showHours balance))) ()
+                 (showHours amountWorked)
+                 numDays
+                 p
+          printf "Flexitime balance %s\n" (showHours balance)
+        )
+    )
+    ()
 
 
 goals :: IO ()
 goals = do
-  work <- loadWork
   goals <- loadGoals
-  now <- getZonedTime
-  printf "Goal              done               ahead by\n"
-  printf "-----------------|------------------|----------\n"
-  mapM_ (printGoal work now) goals
+  now   <- getZonedTime
+  printf
+    "goal               current (target)   deadline                 failures\n"
+  printf
+    "------------------|------------------|------------------------|--------\n"
+  mapM_ (printGoal now) goals
 
-printGoal :: WorkState -> ZonedTime -> Goal -> IO ()
-printGoal work now goal = do
-  let daysNow = goal `daysSpanned` now
-  let current = work `towards` goal
-  let start = goalStart current
-  let target = goalTarget goal
-  let total = totalWork current
-  let progressDays = (total - start) * goalDays goal / (target - start)
-  let dayScore = (truncate $ progressDays - daysNow) :: Integer
-  printf "%-17s %-16s  % 5d day%s\n"
-    (goalName goal)
-    ( printf "%s -> %s"
-            (showUnit total (goalUnit goal))
-            (showUnit target (goalUnit goal))
-     :: String)
-    dayScore
-    (if dayScore /= 1 then "s" else "")
+printGoal :: ZonedTime -> (Project, Goal) -> IO ()
+printGoal now (p, g) = printf
+  "%-18s %-18s %-24s %d\n"
+  p
+  ( printf "%s / %s"
+           (showUnit (goalValue g) (goalUnit g))
+           (showUnit (fromIntegral $ round (goalTarget g)) (goalUnit g)) :: String
+  )
+  (Msg.deadline now (failureTime g))
+  (failureCount g)
 
 
 loadDb :: IO Db
@@ -205,8 +205,9 @@ loadUnsealedWork = do
   db <- loadDb
   return (toWorkState db)
 
-loadGoals :: IO [Goal]
+loadGoals :: IO [(Project, Goal)]
 loadGoals = do
-  db <- loadDb
-  now <- getZonedTime
-  return $ activeGoals now db
+  work <- loadWork
+  now  <- getZonedTime
+  return $ map (\(p, g) -> (p, updateGoalClock g (zonedTimeToLocalTime now)))
+               (activeGoals (entries work))

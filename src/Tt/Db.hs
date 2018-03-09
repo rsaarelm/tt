@@ -13,7 +13,7 @@ import           System.Directory (doesFileExist, getHomeDirectory)
 import           System.FilePath  (joinPath)
 import           Tt.Entry
 
-type Db = [Entry]
+type Db = [RawEntry]
 
 -- | List of paths used for the database, active todo list should be last.
 type DbConf = [FilePath]

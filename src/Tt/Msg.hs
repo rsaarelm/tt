@@ -4,7 +4,8 @@ module Tt.Msg (
   timeclockIn,
   timeclockOut,
   todo,
-  done
+  done,
+  deadline
 ) where
 
 import           Data.Time
@@ -49,3 +50,13 @@ date = formatTime defaultTimeLocale "%Y-%m-%d"
 
 zonedTimeOfDay :: ZonedTime -> String
 zonedTimeOfDay = formatTime defaultTimeLocale "%H:%M:%S%z"
+
+-- | Deadline date message
+deadline :: ZonedTime -> LocalTime -> String
+deadline now day =
+  printf "%s %s" (formatTime defaultTimeLocale "%Y-%m-%d" day) (days ndays)
+ where
+  ndays = localDay day `diffDays` localDay (zonedTimeToLocalTime now)
+  days 0 = "(today)"
+  days 1 = "(tomorrow)"
+  days n = printf "(in %d days)" n
