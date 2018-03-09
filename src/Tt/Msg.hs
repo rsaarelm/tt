@@ -56,7 +56,7 @@ deadline :: ZonedTime -> LocalTime -> String
 deadline now day =
   printf "%s %s" (formatTime defaultTimeLocale "%Y-%m-%d" day) (days ndays)
  where
-  ndays = localDay day `diffDays` localDay (zonedTimeToLocalTime now)
+  ndays = (localDay day `diffDays` localDay (zonedTimeToLocalTime now)) - 1
   days 0 = "(today)"
   days 1 = "(tomorrow)"
   days n = printf "(in %d days)" n
