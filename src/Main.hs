@@ -174,8 +174,9 @@ printGoal :: ZonedTime -> (Project, Goal) -> IO ()
 printGoal now (p, g) = printf
   "%-18s %-18s %-24s %d\n"
   p
-  ( printf "%s / %s"
+  ( printf "%s %s %s"
            (showUnit (goalValue g) (goalUnit g))
+           (if goalSlope g > 0 then "↑" else "↓")
            (showUnit (fromIntegral $ round (goalTarget g)) (goalUnit g)) :: String
   )
   (Msg.deadline now (failureTime g))
