@@ -105,6 +105,9 @@ main = hspec $ do
     it "does not care about stuff after simple accumulation" $
       "x 2018-02-10 thing qux quux" `shouldParseAsSession`
         ("thing", Session (ld 2018 02 10) (Add 1) Nothing)
+    it "does not care about comment after simple accumulation" $
+      "x 2018-02-10 thing  -- Comment thing" `shouldParseAsSession`
+        ("thing", Session (ld 2018 02 10) (Add 1) Nothing)
     it "parses quantified accumulation" $
       "x 2018-02-10 thing 12" `shouldParseAsSession`
         ("thing", Session (ld 2018 02 10) (Add 12) Nothing)

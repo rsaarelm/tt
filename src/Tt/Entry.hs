@@ -15,7 +15,6 @@ module Tt.Entry (
 import           Control.Monad
 import           Data.Char
 import           Data.Fixed                (Pico)
-import           Data.Maybe
 import           Data.Time
 import           Numeric.Interval.NonEmpty
 import           Text.Parsec
@@ -136,7 +135,7 @@ entryParser =
           <$> donePrefix
           <*> optionMaybe (tok zonedTime)
           <*> tok projectName
-          <*> quantity
+          <*> (try quantity <|> return (Add 1, Nothing))
           )
    where
     buildSession d time project (amount, inputUnit) = SessionEntry
@@ -148,8 +147,7 @@ entryParser =
 
 -- | Parse a relative or absolute quantity with an optional unit.
 quantity :: Parser (Value Rational, Maybe String)
-quantity = fromMaybe (Add 1, Nothing)
-  <$> optionMaybe ((,) <$> tok1 amount <*> optionMaybe (tok symbol))
+quantity = (,) <$> tok1 amount <*> optionMaybe (tok symbol)
  where
   amount = ((\x -> Set x x) <$> (string "= " *> number)) <|> (Add <$> number)
 
