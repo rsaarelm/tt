@@ -172,7 +172,7 @@ goals = do
 
 printGoal :: ZonedTime -> (Project, Goal) -> IO ()
 printGoal now (p, g) = printf
-  "%-18s %-18s %-24s %d\n"
+  "%-18s %-18s %-24s %s\n"
   p
   ( printf "%s %s %s"
            (showUnit (goalValue g) (goalUnit g))
@@ -180,7 +180,7 @@ printGoal now (p, g) = printf
            (showUnit (fromIntegral $ round (goalTarget g)) (goalUnit g)) :: String
   )
   (Msg.deadline now (failureTime g))
-  (failureCount g)
+  (if failureCount g > 0 then show (failureCount g) else "")
 
 
 loadDb :: IO Db
