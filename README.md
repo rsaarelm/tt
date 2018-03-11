@@ -99,9 +99,12 @@ goal value to a specific number instead of adding to the existing value:
     x 2017-03-01 GOAL weight -0.2 kg
     x 2017-04-02 weight = 76.5 kg
 
-(If you regularly sort the files in your done file, you probably only want to
-have one absolute datapoint per day. Sorting will not preserve the order of
-the datapoints entered during the same day.)
+If you have multiple absolute datapoints for the same day in your file, you
+need to make sure sorting the lines of the file won't rearrange their order.
+A simple way to ensure this is to add times of the day to the datapoints:
+
+    x 2017-03-02 08:00 falling-goal = 7
+    x 2017-03-02 10:00 falling-goal = 6
 
 If you want to give up on a goal, use the DROP GOAL directive.
 
