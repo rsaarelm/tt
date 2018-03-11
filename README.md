@@ -118,6 +118,12 @@ This will list your ongoing goals, how far along to completion they are and
 whether you're ahead or behind your expected schedule of steadily completing
 them.
 
+## Examples
+
+The actual [done.txt](examples/done.txt) from developing this project is
+included as an example for what the result of a todo.txt and timeclock
+workflow looks like.
+
 ## Bugs
 
 Time tracking currently throws away time zone information, so clock in / clock

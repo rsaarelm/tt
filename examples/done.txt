@@ -1,0 +1,292 @@
+x 2018-01-02 +read +tt https://hackage.haskell.org/package/turtle-1.5.0/docs/Turtle-Tutorial.html
+x 2018-01-02 2018-01-02 +tt Haskell & Parsec project for parsing todo & done logs
+x 2018-01-02 20:23:41+0200 s tt
+x 2018-01-02 21:53:17+0200 e Setup project with stack, learn about Turtle library for maybe doing nicer CLI app
+x 2018-01-03 +day Simple Haskell line read for tt
+x 2018-01-03 2017-12-29 Use done.txt for day logs, use projects 'workday', 'day'
+x 2018-01-03 2017-12-31 Try actually logging some day job hours using the done.txt timeclock thing
+x 2018-01-03 2018-01-02 +tt As proof of concept read all done lines to a string list
+x 2018-01-03 2018-01-02 +tt Set up turtle for shell scripty stuff -- cancelled
+x 2018-01-03 2018-01-03 Use 'Dropped' instead of 'Cancelled' for items that fall off the list to communicate non-intent to decisively discard the item (edit the done list)
+x 2018-01-03 21:17:58+0200 s tt
+x 2018-01-03 22:30:03+0200 e Load text file and split it to lines, plan parsing
+x 2018-01-04 2018-01-04 +read What I wish I knew when learning Haskell
+x 2018-01-05 +day Look into recommended Haskell course exercises, read WIWIKWLHask
+x 2018-01-05 2018-01-04 +read What I wish I knew when learning Haskell, section 'Strings'
+x 2018-01-05 2018-01-05 +read Haskell Programming From First Principles
+x 2018-01-06 +day Token parser in tt
+x 2018-01-06 07:27:15+0200 s tt
+x 2018-01-06 08:57:10+0200 e project structure, test-driven development
+x 2018-01-06 09:56:17+0200 s tt
+x 2018-01-06 10:46:53+0200 e
+x 2018-01-06 11:20:04+0200 s tt
+x 2018-01-06 13:02:03+0200 e Either monad parser, date parsing
+x 2018-01-06 14:09:39+0200 s tt
+x 2018-01-06 15:30:00+0200 e Finish tokenizer
+x 2018-01-06 16:21:18+0200 s tt
+x 2018-01-06 16:33:42+0200 e Prettier source
+x 2018-01-06 2018-01-04 +tt Map log lines to token sequence that preserves string slices for tokens as alt data? (Tokens for dates, times, tags...)
+x 2018-01-06 2018-01-04 +tt Try hlint for haskell code
+x 2018-01-06 2018-01-04 +tt Write some unit tests
+x 2018-01-06 2018-01-05 +read Haskell Programming From First Principles
+x 2018-01-06 2018-01-05 +read cis194 and nicta/data61 for Haskell learning
+x 2018-01-06 2018-01-06 +tt Figure out how to use MonadPlus or Alternative/ApplicativePlus for the combined parse thing, make parse functions return Maybe
+x 2018-01-06 2018-01-06 +tt Make the unit tests pass
+x 2018-01-06 2018-01-06 +tt Parsing in an Either monad...
+x 2018-01-07 +day Haskell tt is working
+x 2018-01-07 09:07:12+0200 s tt
+x 2018-01-07 13:18:17+0200 e Trying to figure out applicative optparse
+x 2018-01-07 15:41:04+0200 s tt
+x 2018-01-07 17:48:23+0200 e Made this clock out using Haskell tt
+x 2018-01-07 2018-01-01 +tt Emit timeclock printout from done.txt that can be fed to hledger
+x 2018-01-07 2018-01-05 +read Typeclassopedia
+x 2018-01-07 2018-01-06 +tt Set up CLI with optparse-applicative
+x 2018-01-07 2018-01-07 +tt CLI appends to todo file
+x 2018-01-07 2018-01-07 +tt CLI clock in and clock out take arbitrary messages in parser
+x 2018-01-07 2018-01-07 +tt CLI reads the todo files
+x 2018-01-10 2018-01-04 +tt lunch break cmd backdates 30 min gap and starts new session on old one's tag (error if no ongoing sesh) -- cancelled: just tag the lunches by hand
+x 2018-01-10 2018-01-04 Return to mainline vim todo mode, don't want to run with modded source for the fork, can do Dropped / Cancelled manually
+x 2018-01-10 2018-01-10 +tt Quick todo capture, either todo verb or recognize aliasing argv0 to todo
+x 2018-01-11 07:12:39+0200 s tt
+x 2018-01-11 08:03:01+0200 e Timezoned timestamps, convert old clocklog
+x 2018-01-11 2018-01-10 +tt put timezone offsets in timeclock timestamps
+x 2018-01-11 2018-01-11 +admin vim todotxt plug shouldn't add prio tags out of the box, investigate plug cache
+x 2018-01-11 2018-01-11 +tt make todo reject empty input
+x 2018-01-11 2018-01-11 +tt now has support for timezone clockstamps, but using that means converting the existing clockstamps to use timezones, also since I'm using hour offsets, DST matters, so I can't just use a single regex. Can use two regexes maybe?
+x 2018-01-12 07:46:12+0200 s tt
+x 2018-01-12 09:17:27+0200 e Timespan type, timespans from clock data
+x 2018-01-12 20:38:11+0200 s tt
+x 2018-01-12 21:37:14+0200 e
+x 2018-01-13 +day Tt can now print the hours worked today on currently clocked task
+x 2018-01-13 10:56:06+0200 s tt
+x 2018-01-13 14:10:07+0200 e Current project hours display
+x 2018-01-13 2017-12-31 +tt Write a script that extracts billing hours from timeclock data (remove 30 min lunch hr, round to 30 min) -- cancelled
+x 2018-01-14 11:22:00+0200 s tt
+x 2018-01-14 11:35:25+0200 e Check for matched entries when clocking in or out
+x 2018-01-14 2018-01-08 +tt Generate close event for current time if there's a clock open in log when generating timeclock
+x 2018-01-14 2018-01-13 +tt i3status can be customized with a wrapping script, make one that emits the current tt status
+x 2018-01-15 19:08:04+0200 s tt
+x 2018-01-15 19:20:05+0200 e decimal hour display
+x 2018-01-15 2018-01-10 +tt timeclock aware prompt, work if there's no tt in path. Env var AT_WORK makes it blink red if you're in shell and not clocked in
+x 2018-01-15 2018-01-15 +tt hour printout should probably be 1.5 instead of 1:30
+x 2018-01-18 2018-01-17 +tt done command
+x 2018-01-18 2018-01-18 +tt FIXME writing "tt todo "foo 12:32 bar"" screws up entry
+x 2018-01-18 20:07:22+0200 s tt
+x 2018-01-18 20:13:21+0200 e Add done command, fix show colon token
+x 2018-01-22 +tt Command to show Dropped items, can cull them by either completing or Cancelling the verbatim same item later in the list. Convert done items to set union/difference operations and fold to accomplish this. Output strips done prefix and emits a todo list
+x 2018-01-24 +day Design beeminder-type markup for done.txt
+x 2018-01-25 +day Tt flexitime balance command
+x 2018-01-25 07:50:38+0200 s tt
+x 2018-01-25 09:42:40+0200 e Flexitime balance command
+x 2018-01-25 2018-01-19 +tt daysCovered :: [Session] -> Int function for monthly balance
+x 2018-01-26 +tt Check out Validation package for conversion stuff  -- Don't quite understand what this is for, not seeing the general conversion angle
+x 2018-01-26 08:01:44+0200 s tt
+x 2018-01-26 09:37:48+0200 e Architecture review, goal tracker planning
+x 2018-01-27 +day Started Parsec parser for tt
+x 2018-01-27 11:20:45+0200 s tt
+x 2018-01-27 13:36:04+0200 e Docs and planning
+x 2018-01-27 13:36:06+0200 s tt
+x 2018-01-27 15:57:48+0200 e Get started writing token parser in Parsec
+x 2018-01-27 16:17:50+0200 s tt
+x 2018-01-27 16:53:32+0200 e Writing applicative style Parsec parser
+x 2018-01-27 2018-01-25 +tt General Haskell question, how does numeric casting work, is there a shorthand for (fromInteger . toInteger), since it looks like that's a meaningful casting operation pattern? -- fromIntegral!
+x 2018-01-27 2018-01-26 +tt document command use examples in readme.md
+x 2018-01-27 2018-01-27 +tt Cancelled is for human use only, so should it just be [cancelled] after a done item?
+x 2018-01-27 2018-01-27 +tt Keep writing the applicative style Parsec parser
+x 2018-01-27 21:23:03+0200 s tt
+x 2018-01-27 22:49:37+0200 e Full token parse, still buggy though
+x 2018-01-28 +day Refactored tt to have a clean modular structure for the functions
+x 2018-01-28 09:30:52+0200 s tt
+x 2018-01-28 11:14:57+0200 e
+x 2018-01-28 12:25:57+0200 s tt
+x 2018-01-28 18:26:22+0200 e Refactored the structure
+x 2018-01-28 2018-01-24 +tt transpose (A) priority tag at start of todo message to be in front of the datestamp on cli todo command (add parser token for priorities)
+x 2018-01-28 2018-01-26 +tt FIXME Unit tests won't compile, actually a bigger problem since tokens with zoned time can no longer derive Eq...
+x 2018-01-28 2018-01-26 +tt Split to modules for ClockEntry, Session and Token
+x 2018-01-28 2018-01-27 +tt Beeminder-type thing will need a token for integer/real values -- Use Fractional type
+x 2018-01-28 2018-01-27 +tt Need backtracking for complex parsers, consuming some input and then failing won't work with naive Parsec
+x 2018-01-28 2018-01-27 +tt Parsec parsers need to make sure all tokens end in white space...
+x 2018-01-28 2018-01-27 +tt Tokenizer should probably not allow multi-colon things as attributes (maybe rewrite it in proper Parsec or something)
+x 2018-01-28 2018-01-28 +tt FIXME token parser needs to try to find end-of-word
+x 2018-01-29 +day Tt goal tracker
+x 2018-01-29 07:25:56+0200 s tt
+x 2018-01-29 08:35:48+0200 e Get started writing the goal tracking function
+x 2018-01-29 18:43:08+0200 s tt
+x 2018-01-29 2018-01-26 +tt Add Goal datatype and parsing goal Entries into Goals
+x 2018-01-29 2018-01-26 +tt Goal datapoint parsing, implicit count 1 for entries without count, unit is always Maybe String, commentary will mix with unit but we'll know if the goal expects an unit or not
+x 2018-01-29 2018-01-28 +tt Non-accumulation goal tracking can start from non-zero value, must wait until the first datapoint when analyzing before the starting state can be fixed, if first datapoint is accumulation the starting state is 0, if it's assignment then starting state equals first datapoint
+x 2018-01-29 2018-01-29 +tt Explain the usage in more detail in README, in particular, explain that the user needs to run the main todo.txt workflow with other tools than tt
+x 2018-01-29 2018-01-29 +tt Main.hs still has frominteger-tointeger, replace with fromintegral
+x 2018-01-29 22:35:34+0200 e Goal tracker is working
+x 2018-01-30 2018-01-30 +tt Should shelved items only have the original date, no shelve date? (Remove first date, transpose 'SHELVED' and second date)
+x 2018-01-31 07:35:26+0200 s tt
+x 2018-01-31 07:48:29+0200 e
+x 2018-01-31 08:05:41+0200 s tt
+x 2018-01-31 08:18:14+0200 e getting going
+x 2018-01-31 08:18:14+0200 s tt
+x 2018-01-31 08:26:40+0200 e Add interim command
+x 2018-01-31 08:26:40+0200 s tt
+x 2018-01-31 08:36:22+0200 e Adopt stylish haskell
+x 2018-01-31 08:36:22+0200 s tt
+x 2018-01-31 09:41:03+0200 e Balance argument is optional
+x 2018-01-31 2018-01-21 +tt Research data abstractions to make timespan logic work on less concrete types
+x 2018-01-31 2018-01-29 +tt Check out hpack to replace cabal, see https://pbrisbin.com/posts/haskell_project_checklist/ And the rest of the stuff from there too basically -- Just plugged in stylish-haskell, maybe don't care that much about the rest
+x 2018-01-31 2018-01-30 +tt Balance command autoassumes current project if no project specified. Bit stumped on this, how do you do optional str argument with Options.Applicative?
+x 2018-01-31 2018-01-30 +tt Special trick with done task, start a message with ^ to date it to yesterday
+x 2018-01-31 2018-01-30 +tt outin command closes current clock with the done comment, then instantly clocks back in in the current project
+x 2018-02-01 +day Refactoring tt session code to support patching sessions to goals
+x 2018-02-01 20:01:51+0200 s tt
+x 2018-02-01 23:15:35+0200 e Session datatype refactoring
+x 2018-02-02 +day Time interval refactor in tt
+x 2018-02-02 +tt Unit NONE in goals to signal that one entry always corresponds to one tick for the goal, and any actual numbers in the datapoint are ignored. Useful for goals where actual data is non-accumulating measurement  -- Cancelled, seems finicky and annoying and I can just use non-numbers for the items
+x 2018-02-02 08:06:16+0200 s tt
+x 2018-02-02 09:20:10+0200 e
+x 2018-02-02 19:42:14+0200 s tt
+x 2018-02-02 2018-01-31 +tt Time spans need to carry the ZonedTime values so you can use localtimes to see if the zone belongs inside a non-zoned day interval
+x 2018-02-02 20:41:46+0200 e
+x 2018-02-03 +day Unified work and time interval type for tt
+x 2018-02-03 14:00:55+0200 s tt
+x 2018-02-03 16:52:09+0200 e Unified Work module for clocked time and goals
+x 2018-02-03 2018-01-29 +tt Why is Token::Time a tuple? Could just be two exposed args like Colon is
+x 2018-02-04 +day Finished tt data structure refactoring
+x 2018-02-04 09:29:23+0200 s tt
+x 2018-02-04 14:29:28+0200 e Refactor frenzy to get new Work module going
+x 2018-02-04 15:46:23+0200 s tt
+x 2018-02-04 16:36:03+0200 e Get the balance command working again
+x 2018-02-04 2018-01-30 +tt.convention Try dot-nacespace project tagging in todo.txt
+x 2018-02-04 2018-02-01 +tt Drop the custom datatype for sessions, just use Numeric.Interval (NewtypeThatOrdsViaUTC ZonedTime), do filtering by project at the point where clocks are being converted to sessions
+x 2018-02-04 2018-02-01 +tt addZone :: LocalTime -> ZonedTime -> ZonedTime, give zonedTime's zone to a localtime, map a LocalTime interval from unzoned dates to match each ZonedTime work interval to intersect the work interval
+x 2018-02-04 2018-02-03 +tt Pick up brittany as source formatter (add a hook for checking that incoming stuff is brittany-ed)
+x 2018-02-04 2018-02-03 +tt Support floating tagtime datapoints specifiers "x 2018-02-03 browsing-reddit 45 min", these can be directly emitted by a tagtime-style system, they also get added to timeclock output (-22.5 to 22.5 minutes around noon or something)
+x 2018-02-04 2018-02-03 +tt Support h/min interchange both in accumulating tagtime datapoints for clocks and for collecting them for goals
+x 2018-02-04 2018-02-04 +tt Delete Session module, Work is the new Session
+x 2018-02-04 2018-02-04 +tt Reactivate balance command
+x 2018-02-05 +day Refactor time data stuff in tt, plan to remove time zones from most of the program
+x 2018-02-05 08:34:56+0200 s tt
+x 2018-02-05 09:45:36+0200 e Sketching out commonalities with the interval-like types
+x 2018-02-05 19:00 tt 1 h
+x 2018-02-05 2018-02-04 +tt Command to show SHELVED items, can cull them by either completing or cancelling the verbatim same item later in the list. Convert done items to set union/difference operations and fold to accomplish this. Output strips done prefix and emits a todo list  -- Cancelled, I realized I don't need the whole SHELVED thing
+x 2018-02-05 2018-02-04 +tt Why am I crossing off the shelved items instead of just moving them to someday.txt as is?
+x 2018-02-05 2018-02-05 +tt UTCOrd should be ZonedOrd, UTC implies throwing out the zone data  -- Cancelled, stop storing zoned times, period
+x 2018-02-06 +day Time refactoring frustrations with tt, abandon time zone handling to simplify things
+x 2018-02-06 05:30 tt 2 h  Getting timeclock to work between optional timezones from parser and localtime only going up to work items
+x 2018-02-06 19:00 tt 1 h
+x 2018-02-06 2018-02-05 +tt Support parsing clocks without tz and without seconds (tz part in time token becomes Maybe)
+x 2018-02-06 2018-02-06 +tt Figure out how to download Data.Time 1.9 from hackage with stack
+x 2018-02-07 05:25:17+0200 s tt
+x 2018-02-07 08:00:00+0200 e
+x 2018-02-07 17:23:06+0200 s tt
+x 2018-02-07 19:00:00+0200 e
+x 2018-02-07 2018-02-02 +tt.goals Goal datapoint parser can read completed todos with two dates (pre-planned with date and time and then closed using an app, file the item on the second date)  -- Cancelled, keeping things out of work parser might be a good idea, and a convention to keep regular todo cruft from being parsed is a good idea. Just stick to discipline with the done items
+x 2018-02-07 2018-02-03 +tt Allow timestamps in tagtime datapoints "x 2018-02-03 13:45:04+0200 browsing-reddit 45 min", parse equivalently into goals and clocks
+x 2018-02-07 2018-02-05 +tt Point timespans expand forward from timestamp point, not around it, consistency with the day blocking feature
+x 2018-02-07 2018-02-05 +tt.tz Hide clock stuff and print timeclock from work units? (Internal clocks could be just ((a :: UTC, LocalTime), Out|In) tuples to automatically get correct sort behavior
+x 2018-02-07 2018-02-05 +tt.tz Just to be safe though, as long as tz isn't handled, recognize clock-paired time spans that do have different tz offset and adjust the second point to match the tz of the first when constructing the localtime interval  -- Cancelled
+x 2018-02-07 2018-02-05 +tt.tz Let's just throw out tz handling from code. Everything is LocalTime, deltas are counted via utc zone (encapsulate in func so it can later be cfg'd to use local tz with dst knowledge). Keep putting tz offsets in clocktimes though, no need to throw out data
+x 2018-02-07 2018-02-05 +tt.tz Make timeclock's clock-sorting work with the optional timezones, sort zoned and unzoned separately (they mustn't mix in pairs and if you temp-assign zoneless as utc there might be unexpected interleaving between them and zoned times) (zoned times can still be converted to LocalTime before sorting, just throw them in a separate sort bin)  -- Cancelled, don't bother with TZ
+x 2018-02-07 2018-02-06 +tt.tz Function toLocalInterval :: (LocalTime, Maybe Timezone) -> (LocalTime, Maybe Timezone) -> Interval LocalTime for building intervals from clockdata. Cross-zone case only hit with non-zone open project  -- Cancelled
+x 2018-02-07 2018-02-06 +tt.tz Screw it, just make timeclocks localtime-only and take the hit with the DST transition spans, this is too complex and annoying
+x 2018-02-07 2018-02-06 +tt.tz Write local addLocalTime and diffLocalTime implementations since stack won't grab time-1.9 yet
+x 2018-02-08 +day Tt work parser structure planning
+x 2018-02-08 06:07:58+0200 s tt
+x 2018-02-08 07:58:42+0200 e Fighting with unified work parser structure
+x 2018-02-09 +day Rewriting base parser for tt to handle the complex work session type, start watching Psycho-Pass
+x 2018-02-09 06:43:44+0200 s tt
+x 2018-02-09 07:57:52+0200 e Scrambling to refactor the whole parsing system
+x 2018-02-09 2018-02-08 +tt.parser New Entry type: Priority todo (for transposing date) | ClockIn LocalTime (Maybe tz) project | ClockOut LocalTime (Maybe tz) | Session day (Maybe (time, Maybe tz)) project (Add amout | Set amount) (Maybe (Unit String | Duration)) (all wrapped in Maybe, couple with verbatim string)
+x 2018-02-10 +day Tt new entry parser is working, drop tokenization layer, start refactoring higher app layers
+x 2018-02-10 10:15:03+0200 s tt
+x 2018-02-10 11:47:38+0200 e Set up TDD testing for the new parser
+x 2018-02-10 11:47:38+0200 s tt
+x 2018-02-10 14:07:59+0200 e New parser working
+x 2018-02-10 14:07:59+0200 s tt
+x 2018-02-10 15:57:00+0200 e Refactor frenzy on higher-level program structure
+x 2018-02-10 2018-01-04 +tt Look into duckling library for parsing text into data, probably want api like that  -- Cancelled, got my parser working
+x 2018-02-10 2018-01-09 +tt Beeminder-type thing will need a token for integer/real values
+x 2018-02-10 2018-01-09 +tt Tokenizer should probably not allow multi-colon things as attributes (maybe rewrite it in proper Parsec or something)
+x 2018-02-10 2018-01-11 +tt Monthly work hour balance assuming 7.5 h work for every day with clocked hours (minus or plus hrs) (make this `tt monthly-flextime --project=foo --daily-hours=7.5`?)
+x 2018-02-10 2018-01-22 +tt Parse ending note with double hyphen separate from main text, ignore it wrt item equality when deciding whether to cancel a Dropped item (can add comment about completing or cancelling and still have it cancel the Drop item)  -- Cancelled, refers to abandoned drop plan, just copy dropped items to someday.txt
+x 2018-02-10 2018-01-28 +tt.parser Maybe there should be two layers to tokenization, [[whitespace][string]] lexemes that split the string cleanly and munge nothing and then token representations that can be generated from these? Use the first to play strings back, the second to do logic (currently "123.0" will get munged to "123" and all spaces get munged to a single space) (comments would need to be handled in the first layer since the comment marker affects multiple ws-separated items)  -- Cancelled, irrelevant in new parsing system
+x 2018-02-10 2018-01-29 +tt.parser If all we have is a token and the lexeme is being synthesized, the first one must have no heading whitespace but all the rest on the line must have one space, Entry printer must specialize for head. Maybe cache the generated lexeme but never put a space, and the printer must check for missing space and add it for non-head lexemes?  -- Cancelled
+x 2018-02-10 2018-02-05 +tt Put the "min"/"h" parsing in one place, can support stuff like days, weeks, months, seconds and min/minutes, h/hours too
+x 2018-02-11 +day Completed tt refactoring, all original features work with new entry parser
+x 2018-02-11 13:07:39+0200 s tt
+x 2018-02-11 15:11:48+0200 e Current work and work balance running
+x 2018-02-11 15:11:48+0200 s tt
+x 2018-02-11 17:46:03+0200 e Goals are working under new layer, refactoring complete
+x 2018-02-11 2018-01-29 +tt Make a coherent noise function for reproducible tagtime-alike from single-iteration xorshift32, should be simple to port...
+x 2018-02-11 2018-01-29 +tt.goals Support ABANDONing goals  -- Actually, just make it so that respeccing the same goal target while the goal is ongoing will rewrite the goal from here on, if you want to abandon the goal, set the start date as today and the due date as yesterday
+x 2018-02-11 2018-01-30 +tt.goals Goals that have minutes or hours as unit grab timeclock entries for goalname project
+x 2018-02-11 2018-02-02 +tt.goals Goal data should directly encode range as Interval LocalTime
+x 2018-02-11 2018-02-03 +tt.parser Use applicative parsing to chew up the entry types, custom type Parser
+x 2018-02-11 2018-02-05 +admin.vim config 'someday.txt' to identify as todofile
+x 2018-02-11 2018-02-05 +tt.tz Add typeclass for things that map to Interval LocalTime
+x 2018-02-11 2018-02-07 +tt Type monoid for unit sequence summing with the adds and sets? What about start value setting?
+x 2018-02-11 2018-02-07 +tt Work parser needs single point of entry, things that go to timeclock parser shouldn't go to unit parser (some kind of monad context / parser that eats entries and can remember timeclock parts? State type equals WorkState exactly!)
+x 2018-02-11 2018-02-07 +tt instead of span variant, workunits could all have just the time position and then have duration as variant unit (Add | Set) amount (Maybe duration | string) <-unit variant, amount converts to timediff for duration
+x 2018-02-11 2018-02-07 +tt.goals If goals work in terms of work units now, work units will need to handle the assign entries too
+x 2018-02-11 2018-02-07 +tt.tz Clock.hs is becoming vestigal, remove it
+x 2018-02-11 2018-02-08 +tt Just extending the line parser to emit things to fold into work state might be the easiest approach to parsing
+x 2018-02-11 2018-02-08 +tt.parser The priority parser that was a weird wart on the session parse can be hacked by matching ('(' : p : ')' : ' ' : ws) on the input
+x 2018-02-11 2018-02-09 +tt The Goal and Session datatypes used by Parser should probably be in Work module (fuse Goal to Work?)  -- Nope, instead parser module became the Entry base datatype module
+x 2018-02-11 2018-02-11 +tt Restore showing work done on currently open session (needs new API)
+x 2018-02-12 +tt.goals Get a proper tabular display module to print goal progress  -- Cancelled, library looked too annoying
+x 2018-02-16 13:55:57+0200 s tt
+x 2018-02-16 15:16:45+0200 e
+x 2018-02-16 2018-02-12 +tt Value monoid start and end given [Value] list (use first set value *anywhere* to establish baseline, adds before that subtract from line) (range :: [Value a] -> Interval a)
+x 2018-02-16 2018-02-13 +tt.value 1 Should set variant of Value carry a second value so it'd fit the interval folding pattern? =x >> (Set x x); Add y -> (Set x z) >> (Set (x - y) z); Set x _ -> Set _ y >> Set x y  (Set {setFrom :: a, setTo :: a})
+x 2018-02-17 2018-02-11 +tt Add entry sorting in Work.toWorkState, use starting date as key
+x 2018-02-17 2018-02-16 +tt Sort key for entries, (inf span, isClockStart) (always sort clockStart above clockEnd when both hit the same spot)
+x 2018-02-18 +day Planning new tt goal datatype
+x 2018-02-24 2018-02-19 +tt Support negative time entries, eg "work -30 min  lunch", intervals can't be negative but these could be just timediff scalars. Extra problem: This is not cleanly representable in timeclock output unless the negative time chunk can be subtracted completely from a suitably close by (same day) positive one  -- Cancelled, I don't think this is worth trying to make it work
+x 2018-03-01 +day Planning dataflow types for tt for handling both worktask building and goal tracking from the same initial input
+x 2018-03-02 +day Planning goal space geometry in tt
+x 2018-03-03 +day Start tt refactoring for new goals
+x 2018-03-03 09:32:43+0200 s tt
+x 2018-03-03 10:43:01+0200 e
+x 2018-03-03 11:01:24+0200 s tt
+x 2018-03-03 11:37:53+0200 e
+x 2018-03-04 +day Tt new goal structure implementing
+x 2018-03-04 10:28:21+0200 s tt
+x 2018-03-04 11:37:09+0200 e
+x 2018-03-04 16:27:12+0200 s tt
+x 2018-03-04 17:34:41+0200 e
+x 2018-03-04 2018-03-03 +tt.goals Refactor entry parser to have split up Work/Goal data in the base Entry type
+x 2018-03-06 +day Refactor tt to split clocks off from cleaned up entry type
+x 2018-03-06 10:14:20+0200 s tt
+x 2018-03-06 12:35:15+0200 e
+x 2018-03-06 17:19:59+0200 s tt
+x 2018-03-06 17:44:09+0200 e Split off the clock data we want filtered out from clean entry type
+x 2018-03-06 2018-02-12 +tt.goals Akrasia horizon, weekly slope is the main parameter, adjustments possible but take a week from filing to change the curve. (I think I can just forget the whole due date and have goals be only the weekly slope)  -- Not going to do the magicaly weekly delay here, user must log everything by hand in tt so churning the goal will be obviously iffy
+x 2018-03-06 2018-02-12 +tt.goals Define goals as GOAL [project] [weekly slope] [unit], adjust data struct accordingly
+x 2018-03-06 2018-02-14 +tt.goals Make sure times are allowed in absolute (set =) datapoints to work around the sorting problem with multiple set datapoints on the same day, document this in readme
+x 2018-03-06 2018-02-17 +tt.goals Should project name be lifted out of Goal struct like it was lifted out of Session?
+x 2018-03-06 2018-03-03 +tt.goals Do not construct goals from entries with zero slope
+x 2018-03-07 13:43:52+0200 s tt
+x 2018-03-07 14:58:54+0200 e
+x 2018-03-08 +day Goal unit tests and working Goal datatype in tt
+x 2018-03-08 11:08:17+0200 s tt
+x 2018-03-08 12:04:26+0200 e
+x 2018-03-08 14:27:36+0200 s tt
+x 2018-03-08 16:51:15+0200 e New Goal datatype seems to be working
+x 2018-03-08 2018-02-11 +tt.goals A new goal entry for the same target within the previous goal's duration will overwrite the previous goal
+x 2018-03-08 2018-02-12 +tt.goals When goal fails, tally the failure, flatline for a week, then resume the goal (beeminder's back on the wagon behavior)
+x 2018-03-08 2018-03-03 +tt.goals Failure formula: time > ceil((value + slope - offset) / slope) (unit is days so ceil snaps to midnight)
+x 2018-03-08 2018-03-03 +tt.goals Implement "datamapFoldl: (a -> b -> a) -> Map k a -> [(k, b)] -> Map k a" for updating active projects
+x 2018-03-08 2018-03-04 Finish the outer layer of new Goal folding by stubbing the relevant Goal methods
+x 2018-03-08 2018-03-08 +tt.goals Unit test goal unit matching, rejecting duration-like sessions for unit-less goal
+x 2018-03-09 +day Finish goal refactoring in tt
+x 2018-03-09 10:32:44+0200 s tt
+x 2018-03-09 11:30:18+0200 e Refactoring Work structure grab entire entries
+x 2018-03-09 11:45:12+0200 s tt
+x 2018-03-09 14:13:01+0200 e Goal printout
+x 2018-03-09 14:36:36+0200 s tt
+x 2018-03-09 15:20:43+0200 e Goal refactor done, back in master
+x 2018-03-09 2018-02-16 +tt.goals Show the time when a goal will fail if you do nothing in status display, 'midnight 2018-02-18 (in 2 days)' (today|tomorrow|in [n] days)
+x 2018-03-09 2018-03-09 +tt FIXME Failure count bugs out if slope is negative and slope has absolute start
+x 2018-03-10 +day Fix some stray bugs in tt goals system
+x 2018-03-10 16:18:00+0200 s tt
+x 2018-03-10 17:00:00+0200 e
+x 2018-03-10 2018-02-12 +tt.goals New terminal window should show tt goals as a welcome message
+x 2018-03-10 2018-03-10 +tt.goals Deadline date is shown wrong, should be one day earlier
+x 2018-03-10 2018-03-10 +tt.goals FIXME Parse error with comment
