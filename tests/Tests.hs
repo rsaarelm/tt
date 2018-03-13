@@ -150,6 +150,19 @@ main = hspec $ do
       `shouldParseAsSession`
       ("job", Session (ldt 2018 02 10 11 34 0) (Add 7200) (Just Duration))
 
+    it "parses a planned time session" $
+      "2018-02-10 12:30 job 2 h"
+      `shouldParseAsPlanned`
+      ("job", Session (ldt 2018 02 10 12 30 0) (Add 7200) (Just Duration))
+    it "does not parse a planned random session" $
+      "2018-02-10 12:30 job" `shouldNotParse` ()
+    it "does not parse a planned session without time of day" $
+      "2018-02-10 job 2 h" `shouldNotParse` ()
+    it "does not parse a planned assign session" $
+      "2018-02-10 12:30 job = 12 min" `shouldNotParse` ()
+    it "does not parse a planned non time unit session" $
+      "2018-02-10 12:30 job 10 km" `shouldNotParse` ()
+
     it "parses simple goal" $
       "x 2018-02-10 GOAL floss 7" `shouldParseEntry`
         StartGoal (d 2018 2 10) "floss" 1 Nothing
@@ -186,6 +199,10 @@ shouldParseAs s expected = parseEntry s `shouldBe` Just expected
 shouldParseAsSession :: String -> (String, Session) -> Expectation
 shouldParseAsSession s (expectedName, expected) =
   parseEntry s `shouldBe` Just (CleanEntry $ SessionEntry expectedName expected)
+
+shouldParseAsPlanned :: String -> (String, Session) -> Expectation
+shouldParseAsPlanned s (expectedName, expected) =
+  parseEntry s `shouldBe` Just (CleanEntry $ PlannedSession expectedName expected)
 
 shouldParseEntry :: String -> Entry -> Expectation
 shouldParseEntry s expected =

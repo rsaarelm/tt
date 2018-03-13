@@ -125,12 +125,16 @@ current :: IO ()
 current = do
   work  <- loadWork
   today <- today
+  now <- getZonedTime
   case currentProject work of
     Just project -> do
       let todaysTime = duration $ onCurrentProject work `during` today
       printf "%s %s\n" project (showHours todaysTime)
-    Nothing -> return ()
-
+    Nothing -> case plannedProject work (zonedTimeToLocalTime now) of
+      Just (p, s) -> printf "%s until %s\n" p endTime
+       where
+        endTime = formatTime defaultTimeLocale "%H:%M" $ sup (asTimeInterval s)
+      Nothing      -> return ()
 
 balance :: Maybe String -> IO ()
 balance proj = do

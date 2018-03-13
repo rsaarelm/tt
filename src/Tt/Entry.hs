@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveFunctor #-}
 
 module Tt.Entry (
-  Entry(SessionEntry, StartGoal, EndGoal),
+  Entry(SessionEntry, PlannedSession, StartGoal, EndGoal),
   RawEntry(ClockIn, ClockOut, CleanEntry),
   entrySortKey,
   Project,
@@ -27,6 +27,7 @@ import           Tt.Util
 -- Clock values from raw entries are converted into SessionEntries.
 data Entry =
     SessionEntry Project Session
+  | PlannedSession Project Session
   | StartGoal Day Project Rational (Maybe Unit)
   | EndGoal Day Project
   deriving (Eq, Show)
@@ -48,6 +49,7 @@ entrySortKey :: RawEntry -> (LocalTime, Int)
 entrySortKey (ClockIn d (t, _) _) = (LocalTime d t, 1)
 entrySortKey (ClockOut d (t, _)) = (LocalTime d t, 0)
 entrySortKey (CleanEntry (SessionEntry _ s)) = (inf $ asTimeInterval s, 0)
+entrySortKey (CleanEntry (PlannedSession _ s)) = (inf $ asTimeInterval s, 0)
 entrySortKey (CleanEntry (StartGoal d _ _ _)) = (LocalTime d midnight, 0)
 entrySortKey (CleanEntry (EndGoal d _)) = (LocalTime (addDays 1 d) midnight, 0)
 
@@ -104,6 +106,7 @@ parseEntry s = case parse entryParser "" s of
 entryParser :: Parser RawEntry
 entryParser =
   try clockIn <|> try clockOut <|> try goal <|> try endGoal <|> try session
+    <|> try plannedSession
  where
   clockIn = ClockIn <$> donePrefix <*> tok zonedTime <*  tok (string "s") <*> tok projectName
   clockOut = ClockOut <$> donePrefix <*> tok zonedTime <* tok (string "e")
@@ -145,11 +148,37 @@ entryParser =
       (multiplier, unit) = convertUnit inputUnit
       localtime          = LocalTime d (maybe midday fst time)
 
+  -- Planned entries must have duration type and include a time of day, parser
+  -- is a bit different from regular session.
+  plannedSession =
+    CleanEntry
+      <$> (   buildSession
+          <$> tok date
+          <*> tok zonedTime
+          <*> tok projectName
+          <*> duration
+          )
+   where
+    buildSession d time project seconds = PlannedSession
+      project
+      (Session localtime (Add seconds) (Just Duration))
+     where
+      localtime          = LocalTime d (fst time)
+
 -- | Parse a relative or absolute quantity with an optional unit.
 quantity :: Parser (Value Rational, Maybe String)
 quantity = (,) <$> tok1 amount <*> optionMaybe (tok symbol)
  where
   amount = ((\x -> Set x x) <$> (string "= " *> number)) <|> (Add <$> number)
+
+-- | Parse a duration quantity. Return duration converted to seconds.
+duration :: Parser Rational
+duration = do
+  amount <- tok1 number
+  unit <- tok symbol
+  case convertUnit (Just unit) of
+    (n, Just Duration) -> return (amount * n)
+    _                  -> fail "not a duration"
 
 donePrefix :: Parser Day
 donePrefix = tok (string "x") *> tok date

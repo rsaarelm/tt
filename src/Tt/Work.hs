@@ -4,6 +4,7 @@ module Tt.Work (
   seal,
   timeClocks,
   currentProject,
+  plannedProject,
   intersectWork,
   duration,
   during,
@@ -62,6 +63,12 @@ timeClocks state = concat $ unfoldr unfoldTimeclock state
 
 currentProject :: WorkState -> Maybe Project
 currentProject state = fst <$> currentStart state
+
+plannedProject :: WorkState -> LocalTime -> Maybe (Project, Session)
+plannedProject state t = listToMaybe $ mapMaybe f (entries state)
+ where
+  f (PlannedSession p s) | t `member` asTimeInterval s = Just (p, s)
+  f _                    = Nothing
 
 updateState :: WorkState -> RawEntry -> WorkState
 updateState state (ClockIn day (time, _) project) =
