@@ -40,6 +40,7 @@ updateState state (StartGoal day project slope unit) =
 updateState state (EndGoal _ project) = Map.delete project state
 updateState state (SessionEntry project session) =
   Map.update (\x -> Just (updateGoal x session)) project state
+updateState state _ = state
 
 goalValue :: Goal -> Rational
 goalValue goal = case goalValue' goal of
