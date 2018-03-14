@@ -79,7 +79,7 @@ showUnit :: Rational -> Maybe Unit -> String
 showUnit amount (Just Duration) | amount < 3600 =
   printf "%d min" (truncate (amount / 60) :: Integer)
 showUnit amount (Just Duration) =
-  printf "%.1f h" $ realToFrac amount / (3600 :: Double)
+  printf "%s h" (showRat (amount / 3600))
 showUnit amount (Just (Named u)) = unwords [showRat amount, u]
 showUnit amount Nothing          = showRat amount
 

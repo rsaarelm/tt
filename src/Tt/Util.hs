@@ -23,7 +23,7 @@ import           Text.Printf
 showRat :: Rational -> String
 showRat n = if denominator n == 1
   then show (truncate n :: Integer)
-  else showFFloat Nothing (fromRat n :: Double) ""
+  else printf "%.1f" (fromRat n :: Double)
 
 -- | Show a nicely formatted hour readout
 showHours :: NominalDiffTime -> String
