@@ -12,6 +12,7 @@ module Tt.Goal (
 import qualified Data.Map.Strict as Map
 import           Data.Ratio
 import           Data.Time
+import           GHC.Exts
 import           Tt.Entry
 import           Tt.Util
 
@@ -28,7 +29,7 @@ data Goal = Goal {
 } deriving (Eq, Show)
 
 activeGoals :: [Entry] -> [(Project, Goal)]
-activeGoals = Map.toList . foldl updateState Map.empty
+activeGoals = sortWith (\(_, g) -> failureDay g) . Map.toList . foldl updateState Map.empty
 
 initGoal :: Day -> Rational -> Maybe Unit -> Goal
 initGoal begin slope unit = Goal slope unit mempty 0 b 0 b
