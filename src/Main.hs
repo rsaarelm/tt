@@ -4,6 +4,7 @@ import           Control.Monad
 import           Data.Maybe
 import           Data.Semigroup            ((<>))
 import           Data.Time
+import           GHC.Exts
 import           Numeric.Interval.NonEmpty
 import           Options.Applicative
 import           Text.Printf
@@ -125,7 +126,7 @@ current :: IO ()
 current = do
   work  <- loadWork
   today <- today
-  now <- getZonedTime
+  now   <- getZonedTime
   case currentProject work of
     Just project -> do
       let todaysTime = duration $ onCurrentProject work `during` today
@@ -134,7 +135,7 @@ current = do
       Just (p, s) -> printf "%s until %s\n" p endTime
        where
         endTime = formatTime defaultTimeLocale "%H:%M" $ sup (asTimeInterval s)
-      Nothing      -> return ()
+      Nothing -> return ()
 
 balance :: Maybe String -> IO ()
 balance proj = do
@@ -214,5 +215,6 @@ loadGoals :: IO [(Project, Goal)]
 loadGoals = do
   work <- loadWork
   now  <- getZonedTime
-  return $ map (\(p, g) -> (p, updateGoalClock g (zonedTimeToLocalTime now)))
-               (activeGoals (entries work))
+  return $ sortWith (\(_, g) -> failureTime g) $ map
+    (\(p, g) -> (p, updateGoalClock g (zonedTimeToLocalTime now)))
+    (activeGoals (entries work))
