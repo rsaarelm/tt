@@ -13,12 +13,23 @@ Tt has logic that depends on the ordering of items, but it always sorts the
 items itself based on their timestamps and ignores the physical order the
 lines are found in the `done.txt` and `todo.txt` log files.
 
+## Installation
+
+Install the [Haskell Tool Stack](https://www.haskellstack.org/) to build and
+install tt:
+
+    cd tt
+    stack build
+    stack install
+
 ## TODO items
 
 Tt is not a complete todo application. You are assumed to use a text editor or
-a dedicated todo.txt tool like Simpletask to maintain your todo list. However,
-tt does provide you with `todo` and `done` commands to add a new open or
-completed item to your `todo.txt` file from the command line.
+a dedicated todo.txt tool like
+[Simpletask](https://github.com/mpcjanssen/simpletask-android) to maintain
+your todo list. However, tt does provide you with `todo` and `done` commands
+to quickly add a new open or completed items to your `todo.txt` file from the
+command line.
 
     tt todo "Buy milk @shop"
 
@@ -28,9 +39,9 @@ also enter done items to add a daily summary of what you did. See
 
     tt done "+day Finished painting the deck"
 
-You can also add a "^" to the start of the message to backdate it to yesterday.
+You can add a "^" to the start of the message to backdate it to yesterday.
 
-    tt done "^Late night run"
+    tt done "^run 4 km  -- Late night run"
 
 ## Time tracking
 
@@ -64,6 +75,36 @@ entries by hand in your `todo.txt` file. The reason tt files even the "done"
 entries in `todo.txt` instead of `done.txt` is that this allows you to use the
 `done.txt` file as a frozen append-only storage that you file done items from
 todo.txt in once you're happy with them.
+
+There are two internal syntaxes for tracked time. The `tt in` and `tt out`
+commands generate start and end entry pairs:
+
+    x 2018-01-05 10:00:00+0200 s project
+    x 2018-01-05 10:30:00+0200 e Did some work on project
+
+You can also use a single line in the goal tracker datapoint style with either
+`min` or `h` as the unit:
+
+    x 2018-01-05 10:00 project 30 min  Did some work on project
+
+There is no internal difference between the styles. You probably want to use
+the `tt in` style when you clock into a task and aren't sure when you'll
+stop, and the goal datapoint style when you're planning time blocking or
+entering work hours done after the fact.
+
+## Time blocking
+
+You can plan your [future time
+use](http://calnewport.com/blog/2013/12/21/deep-habits-the-importance-of-planning-every-minute-of-your-work-day/)
+with open todo items that have both date and time and have a duration unit.
+
+    2018-01-10 09:00 block-project 2 h  -- Plan to work on block-project for two hours
+    2018-02-10 12:00 lunch-break 30 min  -- Time in minutes
+
+An ongoing planned session will show up in `tt current`, but unless you mark
+them up with the `x`, they won't show up in your log of completed work. The
+assumption is that the plan is expected to change and you only mark the lines
+done when you have completed that planned work block.
 
 ## Goal tracking
 
@@ -114,9 +155,8 @@ You can view ongoing goals and recently completed ones with
 
     tt goals
 
-This will list your ongoing goals, how far along to completion they are and
-whether you're ahead or behind your expected schedule of steadily completing
-them.
+This will list your ongoing goals and whether you're ahead or behind your
+expected schedule of steadily completing them.
 
 ## Examples
 
