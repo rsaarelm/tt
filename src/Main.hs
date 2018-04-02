@@ -182,10 +182,16 @@ printGoal now (p, g) = printf
   ( printf "%s %s %s"
            (showUnit (goalValue g) (goalUnit g))
            (if goalSlope g > 0 then "↑" else "↓")
-           (showUnit (fromIntegral $ round (goalTarget g)) (goalUnit g)) :: String
+           (showUnit (fromIntegral $ ceiling (goalTarget g')) (goalUnit g')) :: String
   )
   (Msg.deadline now (failureTime g))
   (if failureCount g > 0 then show (failureCount g) else "")
+ where
+  -- Show target point at next midnight where today's goal failure will be
+  -- checked.
+  g' = updateGoalClock g nextMidnight
+  nextMidnight =
+    LocalTime (1 `addDays` localDay (zonedTimeToLocalTime now)) midnight
 
 
 loadDb :: IO Db
