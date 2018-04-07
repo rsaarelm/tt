@@ -5,6 +5,7 @@ module Tt.Msg (
   timeclockOut,
   todo,
   done,
+  doneWithTime,
   deadline
 ) where
 
@@ -44,6 +45,9 @@ todo t msg                        = printf "%s %s" (date t) msg
 
 done :: ZonedTime -> String -> String
 done t = printf "x %s %s" (date t)
+
+doneWithTime :: ZonedTime -> String -> String
+doneWithTime t = printf "x %s %s %s" (date t) (formatTime defaultTimeLocale "%H:%H" t)
 
 date :: ZonedTime -> String
 date = formatTime defaultTimeLocale "%Y-%m-%d"
