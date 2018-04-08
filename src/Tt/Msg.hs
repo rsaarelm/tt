@@ -47,7 +47,7 @@ done :: ZonedTime -> String -> String
 done t = printf "x %s %s" (date t)
 
 doneWithTime :: ZonedTime -> String -> String
-doneWithTime t = printf "x %s %s %s" (date t) (formatTime defaultTimeLocale "%H:%H" t)
+doneWithTime t = printf "x %s %s %s" (date t) (formatTime defaultTimeLocale "%H:%M" t)
 
 date :: ZonedTime -> String
 date = formatTime defaultTimeLocale "%Y-%m-%d"
