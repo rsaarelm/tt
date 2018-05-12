@@ -169,11 +169,14 @@ goals :: IO ()
 goals = do
   goals <- loadGoals
   now   <- getZonedTime
-  printf
-    "goal               current (target)   deadline                 failures\n"
-  printf
-    "------------------|------------------|------------------------|--------\n"
-  mapM_ (printGoal now) goals
+  unless (null goals) $ showGoals goals now
+ where
+  showGoals goals now = do
+    printf
+      "goal               current (target)   deadline                 failures\n"
+    printf
+      "------------------|------------------|------------------------|--------\n"
+    mapM_ (printGoal now) goals
 
 printGoal :: ZonedTime -> (Project, Goal) -> IO ()
 printGoal now (p, g) = printf
