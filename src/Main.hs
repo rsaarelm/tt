@@ -112,7 +112,7 @@ done text = do
  where
   -- If the message starts with "^", backdate it to yesterday
   processMsg t c@('^':cs) = puntBack t c
-  processMsg t c          = Msg.doneWithTime t c
+  processMsg t c          = Msg.done t c
   puntBack t ('^':cs) = puntBack (yesterday t) cs
   puntBack t s        = Msg.done t s
 
