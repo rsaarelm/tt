@@ -2,7 +2,7 @@ name:                tt
 version:             0.1.0.0
 synopsis:            Command line time tracking and todo tool
 -- description:
-homepage:            https://github.com/githubuser/tt#readme
+homepage:            https://github.com/rsaarelm/tt
 license:             BSD3
 license-file:        LICENSE
 author:              Risto Saarelma <risto.saarelma@iki.fi>
