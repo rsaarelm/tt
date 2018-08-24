@@ -39,6 +39,8 @@ timeclockOut :: LocalTime -> String
 timeclockOut t = printf "o %s" (formatTime defaultTimeLocale "%Y/%m/%d %H:%M:%S" t)
 
 todo :: ZonedTime -> String -> String
+-- Put shelve bar in front of everything
+todo t ('|':' ':msg)              = printf "| %s" (todo t msg)
 -- Put priority tag in front of the timestamp
 todo t ('(':priority:')':' ':msg) = printf "(%c) %s %s" priority (date t) msg
 todo t msg                        = printf "%s %s" (date t) msg
