@@ -37,7 +37,8 @@ executable tt
   hs-source-dirs:      src
   main-is:             Main.hs
   default-language:    Haskell2010
-  other-modules:       Tt.Util
+  other-modules:       Options
+                       Tt.Util
                        Tt.Entry
                        Tt.Parser
                        Tt.Msg

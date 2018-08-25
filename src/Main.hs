@@ -14,63 +14,12 @@ import           Tt.Goal
 import qualified Tt.Msg                    as Msg
 import           Tt.Util
 import           Tt.Work
+import           Options
 
 main :: IO ()
-main =
-  join
-    $  execParser
-    $  info (opts <**> helper)
-    $  fullDesc
-    <> progDesc "Time tracking tool"
-    <> header "tt - time tracking tool"
-
-opts :: Parser (IO ())
-opts =
-  subparser
-    $  command
-         "in"
-         ( info
-             ( clockIn <$> argument str (metavar "project") <*> many
-               (argument str (metavar "description"))
-             )
-         $ progDesc "Clock in to a project"
-         )
-    <> command
-         "out"
-         ( info (clockOut <$> many (argument str (metavar "description")))
-         $ progDesc "Clock out of the clocked in project"
-         )
-    <> command
-         "todo"
-         ( info (todo <$> some (argument str (metavar "description")))
-         $ progDesc "Add a todo item from the command line"
-         )
-    <> command
-         "done"
-         ( info (done <$> some (argument str (metavar "description")))
-         $ progDesc "Add a done item from the command line"
-         )
-    <> command
-         "timeclock"
-         ( info (pure timeclock)
-         $ progDesc "Output hours in timeclock format for hledger"
-         )
-    <> command
-         "current"
-         ( info (pure current)
-         $ progDesc "Show current project and hours worked on it today"
-         )
-    <> command
-         "balance"
-         ( info (balance <$> optional (argument str (metavar "project")))
-         $ progDesc "Show monthly flexitime balance on project"
-         )
-    <> command
-         "goals"
-         ( info (pure goals)
-         $ progDesc "Show progress on currently active goals"
-         )
-
+main = do
+  options <- execParser options
+  print options
 
 clockIn :: String -> [String] -> IO ()
 clockIn project text = do
