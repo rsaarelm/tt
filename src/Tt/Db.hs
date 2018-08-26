@@ -12,6 +12,7 @@ import           Data.Maybe
 import           System.Directory (doesFileExist, getHomeDirectory)
 import           System.FilePath  (joinPath)
 import           Tt.Entry
+import           Tt.Parser
 
 type Db = [RawEntry]
 

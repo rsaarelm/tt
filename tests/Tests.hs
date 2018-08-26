@@ -5,6 +5,7 @@ import           Data.Time
 import           Test.Hspec
 import           Tt.Entry
 import           Tt.Goal
+import           Tt.Parser
 
 main :: IO ()
 main = hspec $ do
