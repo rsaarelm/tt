@@ -57,14 +57,16 @@ type Project = String
 -- going from 93 kg to 81 kg instead of just ending up at 81 kg.
 data Value a = Add a | Set a a deriving (Eq, Show, Functor)
 
+instance Num a => Semigroup (Value a) where
+  (Add a) <> (Add b) = Add (a + b)
+  -- Calculate initial baseline from pre-existing addition
+  (Add a) <> (Set b c) = Set (b - a) c
+  -- Update value but maintain original baseline
+  (Set a b) <> (Add c) = Set a (b + c)
+  (Set a _) <> (Set _ b) = Set a b
+
 instance Num a => Monoid (Value a) where
   mempty = Add 0
-  (Add a) `mappend` (Add b) = Add (a + b)
-  -- Calculate initial baseline from pre-existing addition
-  (Add a) `mappend` (Set b c) = Set (b - a) c
-  -- Update value but maintain original baseline
-  (Set a b) `mappend` (Add c) = Set a (b + c)
-  (Set a _) `mappend` (Set _ b) = Set a b
 
 -- | Unit of the work done for the project
 data Unit = Duration | Named String deriving (Eq, Show)
