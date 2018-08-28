@@ -1,17 +1,23 @@
 module Main where
 
 import           Control.Monad
+import           Data.List
 import           Data.Maybe
 import           Data.Semigroup            ((<>))
 import           Data.Time
 import           GHC.Exts
 import           Numeric.Interval.NonEmpty
 import           Options.Applicative
+import           System.Directory (doesFileExist, getHomeDirectory)
+import           System.Exit
+import           System.FilePath  (joinPath)
+import           System.IO
 import           Text.Printf
 import           Tt.Db
 import           Tt.Entry
 import           Tt.Goal
 import qualified Tt.Msg                    as Msg
+import           Tt.Parser
 import           Tt.Util
 import           Tt.Work
 import           Options
@@ -19,7 +25,50 @@ import           Options
 main :: IO ()
 main = do
   options <- execParser options
-  print options
+  -- This part is hacky. The prefix option has default value "~/", but we
+  -- can't expand literal ~-paths, and when the user enters a ~-path on command
+  -- line, the shell is expected to expand it to an absolute path. So the
+  -- default value is special cased here to read the home directory.
+  --
+  -- The cleaner approach would be to just make the prefix option a Maybe
+  -- String and have the branch for Nothing, but the string value is a bit
+  -- more informative if it shows up in generated CLI options documentation.
+  prefix <- do case (prefix options) of
+                 "~/" -> getHomeDirectory
+                 x -> return x
+  db <- sortOn entrySortKey . join <$> traverse (slurp prefix) ["done.txt", "todo.txt"]
+  now <- getZonedTime
+  case runCmd (Ctx now db) (cmd options) of
+    Left error -> die error
+    Right (CmdResult entries msg) ->
+      do
+        traverse (spew prefix "todo.txt") entries
+        case msg of Just x -> putStrLn x
+                    Nothing -> return ()
+ where
+  -- Read file into entries
+  slurp prefix file = do
+   let path = joinPath [prefix, file]
+   fileExists <- doesFileExist path
+   if fileExists then do
+                   contents <- readFile path
+                   return $ mapMaybe parseEntry $ lines contents
+            else do return []
+  -- Write a new line to a file
+  spew prefix file line =
+    do
+      printf "Wrote to todo.txt: %s\n" line
+      appendFile (joinPath [prefix, file]) (line ++ "\n")
+
+data Ctx = Ctx { now :: ZonedTime, db :: Db }
+
+-- Result of a successful command execution.
+--
+-- Can catenate lines to todo.txt and print a message to stdout.
+data CmdResult = CmdResult { catenate :: [String], cmdMessage :: Maybe String }
+
+runCmd :: Ctx -> Cmd -> Either String CmdResult
+runCmd _ _ = Left "TODO"
 
 clockIn :: String -> [String] -> IO ()
 clockIn project text = do
