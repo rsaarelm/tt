@@ -21,7 +21,6 @@ library
                        Tt.Parser
                        Tt.Msg
                        Tt.Goal
-                       Tt.Db
                        Tt.Work
   default-language:    Haskell2010
   build-depends:       base,
@@ -43,7 +42,6 @@ executable tt
                        Tt.Parser
                        Tt.Msg
                        Tt.Goal
-                       Tt.Db
                        Tt.Work
   build-depends:       base,
                        containers,

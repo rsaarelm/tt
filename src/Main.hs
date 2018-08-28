@@ -14,7 +14,6 @@ import           System.Exit
 import           System.FilePath  (joinPath)
 import           System.IO
 import           Text.Printf
-import           Tt.Db
 import           Tt.Entry
 import           Tt.Goal
 import qualified Tt.Msg                    as Msg
@@ -57,6 +56,8 @@ main = do
     do
       printf "Wrote to todo.txt: %s\n" line
       appendFile (joinPath [prefix, file]) (line ++ "\n")
+
+type Db = [RawEntry]
 
 data Ctx = Ctx { now :: ZonedTime, db :: Db }
 
