@@ -67,7 +67,7 @@ parseCmd = subparser $
       $ progDesc "Clock out of the current clock")
   <> command "break" (info
       (Break
-        <$> option str (long "for" <> metavar "RELTIME_EXPR" <> help "Duration of break")
+        <$> (forOpt <|> fromOpt)
         <*> (maybeWords <$> many (argument str (metavar "comment"))))
       $ progDesc "Add a break of specified duration to current clock")
   <> command "current" (info (pure Current)
@@ -99,6 +99,14 @@ parseCmd = subparser $
   afterOpt = (option $ maybePrefix "after " <$> str)
              (long "after" <> metavar "RELTIME_EXPR" <> value Nothing
                <> help "Adjust to happen after total [TIME_EXPR] spent today")
+
+  forOpt = option str
+           (long "for" <> metavar "RELTIME_EXPR"
+             <> help "Duration for break")
+
+  fromOpt = (option $ (++ " until now") <$> str)
+            (long "from" <> metavar "TIME_EXPR"
+              <> help "Adjust to have happeneng from [TIME_EXPR] until now")
 
   maybeWords [] = Nothing
   maybeWords (x:xs) = Just $ unwords (x:xs)
