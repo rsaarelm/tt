@@ -67,7 +67,7 @@ parseCmd = subparser $
       $ progDesc "Clock out of the current clock")
   <> command "break" (info
       (Break
-        <$> (option str) (long "for" <> metavar "RELTIME_EXPR" <> help "Duration of break")
+        <$> option str (long "for" <> metavar "RELTIME_EXPR" <> help "Duration of break")
         <*> (maybeWords <$> many (argument str (metavar "comment"))))
       $ progDesc "Add a break of specified duration to current clock")
   <> command "current" (info (pure Current)

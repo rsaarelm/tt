@@ -1,6 +1,7 @@
 module Main where
 
 import           Control.Monad
+import           Data.Foldable
 import           Data.List
 import           Data.Maybe
 import           Data.Semigroup            ((<>))
@@ -33,27 +34,24 @@ main = do
   -- The cleaner approach would be to just make the prefix option a Maybe
   -- String and have the branch for Nothing, but the string value is a bit
   -- more informative if it shows up in generated CLI options documentation.
-  prefix <- do case (prefix options) of
-                 "~/" -> getHomeDirectory
-                 x -> return x
+  prefix <- case prefix options of
+               "~/" -> getHomeDirectory
+               x -> return x
   db <- sortOn entrySortKey . join <$> traverse (slurp prefix) ["done.txt", "todo.txt"]
   now <- getZonedTime
   case runCmd (Ctx now db) (cmd options) of
     Left error -> die error
     Right (CmdResult entries msg) ->
       do
-        traverse (spew prefix "todo.txt") entries
-        case msg of Just x -> putStrLn x
-                    Nothing -> return ()
+        traverse_ (spew prefix "todo.txt") entries
+        forM_ msg putStrLn
  where
   -- Read file into entries
   slurp prefix file = do
    let path = joinPath [prefix, file]
    fileExists <- doesFileExist path
-   if fileExists then do
-                   contents <- readFile path
-                   return $ mapMaybe parseEntry $ lines contents
-            else do return []
+   if fileExists then mapMaybe parseEntry . lines <$> readFile path
+                 else return []
   -- Write a new line to a file
   spew prefix file line =
     do
@@ -89,10 +87,7 @@ clockOut text = do
     Nothing -> printf "Error: Not clocked in a project.\n"
 
 getCurrentProject :: IO (Maybe String)
-getCurrentProject = do
-  work <- loadWork
-  return $ currentProject work
-
+getCurrentProject = currentProject <$> loadWork
 
 todo :: [String] -> IO ()
 todo text = do
@@ -214,9 +209,7 @@ loadWork = do
 -- | Unsealed work will not have a session for the currently open project, but
 -- it's what you want if you're printing timeclocks.
 loadUnsealedWork :: IO WorkState
-loadUnsealedWork = do
-  db <- loadDb
-  return (toWorkState db)
+loadUnsealedWork = toWorkState <$> loadDb
 
 loadGoals :: IO [(Project, Goal)]
 loadGoals = do

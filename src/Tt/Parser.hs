@@ -144,7 +144,7 @@ timeOfDay =
 zoneOffset :: Parser TimeZone
 zoneOffset = negativeZone <|> positiveZone
  where
-  negativeZone  = (minutesToTimeZone . negate) <$> (char '-' *> hhmmToMinutes)
+  negativeZone  = minutesToTimeZone . negate <$> (char '-' *> hhmmToMinutes)
   positiveZone  = minutesToTimeZone <$> (char '+' *> hhmmToMinutes)
   hhmmToMinutes = (\h m -> h * 60 + m) <$> hour <*> minute
 
