@@ -61,6 +61,8 @@ type ContextIO a = ReaderT Ctx IO a
 runCmd :: Cmd -> ContextIO ()
 runCmd (In at project comment) = clockIn at project comment
 runCmd (Out project comment) = clockOut project comment
+runCmd (Todo msg) = todo msg
+runCmd (Done timestamp msg) = done timestamp msg
 runCmd cmd =
   liftIO $ print "Hello world!"
 
@@ -117,26 +119,27 @@ onBreak = do
     Nothing -> Nothing
     Just s -> if t < s then Just s else Nothing
 
---todo :: [String] -> IO ()
---todo text = do
---  now <- getZonedTime
---  let msg = Msg.todo now (unwords text)
---  append msg
---  printf "Todo task added: %s\n" msg
---
---done :: [String] -> IO ()
---done text = do
---  now <- getZonedTime
---  let msg          = processMsg now (unwords text)
---  append msg
---  printf "Done task added: %s\n" msg
--- where
---  -- If the message starts with "^", backdate it to yesterday
---  processMsg t c@('^':cs) = puntBack t c
---  processMsg t c          = Msg.done t c
---  puntBack t ('^':cs) = puntBack (yesterday t) cs
---  puntBack t s        = Msg.done t s
---
+todo :: String -> ContextIO ()
+todo msg = do
+  t <- now <$> ask
+  let entry = Msg.todo t msg
+  append entry
+  liftIO $ printf "Todo task added: %s\n" entry
+
+done :: Bool -> String -> ContextIO ()
+done timestamp msg = do
+  t <- now <$> ask
+  let entry = processMsg t msg
+  append entry
+  liftIO $ printf "Done task added: %s\n" entry
+ where
+  -- If the message starts with "^", backdate it to yesterday
+  processMsg t c@('^':cs) = puntBack t c
+  processMsg t c          = (if timestamp then Msg.doneWithTime else Msg.done)
+                            t c
+  puntBack t ('^':cs) = puntBack (yesterday t) cs
+  puntBack t s        = Msg.done t s
+
 --timeclock :: IO ()
 --timeclock = do
 --  work <- loadUnsealedWork
