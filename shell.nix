@@ -9,7 +9,7 @@ let
   #
   # hie = import (fetchTarball "https://github.com/domenkozar/hie-nix/archive/e3113da93b479bec3046e67c0123860732335dd9.tar.gz") { inherit pkgs; };
 
-  f = { mkDerivation, base, containers, directory, filepath, hspec
+  f = { mkDerivation, base, containers, directory, filepath, hspec, mtl
       , intervals, optparse-applicative, parsec, stdenv, time
       }:
       mkDerivation {
@@ -22,7 +22,7 @@ let
           base containers directory filepath intervals parsec time
         ];
         executableHaskellDepends = [
-          base containers directory filepath intervals optparse-applicative
+          base containers directory filepath intervals mtl optparse-applicative
           parsec time
         ];
         testHaskellDepends = [ base hspec intervals time ];

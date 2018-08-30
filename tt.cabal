@@ -48,6 +48,7 @@ executable tt
                        directory,
                        filepath,
                        intervals,
+                       mtl,
                        optparse-applicative,
                        parsec,
                        time

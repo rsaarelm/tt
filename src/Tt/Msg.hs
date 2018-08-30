@@ -17,15 +17,15 @@ import           Text.Printf
 -- These messages use 's', 'e' instead of 'i', 'o' so that lexically sorting a
 -- todo.txt file will put the clock in line after the clock out line if both
 -- have the exact same timestamp.
-clockIn :: ZonedTime -> String -> String -> String
-clockIn t proj "" = printf "x %s %s s %s" (date t) (zonedTimeOfDay t) proj
-clockIn t proj msg =
+clockIn :: ZonedTime -> String -> Maybe String -> String
+clockIn t proj Nothing = printf "x %s %s s %s" (date t) (zonedTimeOfDay t) proj
+clockIn t proj (Just msg) =
   printf "x %s %s s %s %s" (date t) (zonedTimeOfDay t) proj msg
 
 -- | Clock out message in todo.txt format
-clockOut :: ZonedTime -> String -> String
-clockOut t ""  = printf "x %s %s e" (date t) (zonedTimeOfDay t)
-clockOut t msg = printf "x %s %s e %s" (date t) (zonedTimeOfDay t) msg
+clockOut :: ZonedTime -> Maybe String -> String
+clockOut t Nothing  = printf "x %s %s e" (date t) (zonedTimeOfDay t)
+clockOut t (Just msg) = printf "x %s %s e %s" (date t) (zonedTimeOfDay t) msg
 
 -- | Clock in message in the emacs/hledger timeclock format
 --

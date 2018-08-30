@@ -1,8 +1,8 @@
 module Tt.Util (
   showRat,
   showHours,
-  today,
-  thisMonth,
+  dayOf,
+  monthOf,
   yesterday,
   before,
   daysCovered,
@@ -32,18 +32,12 @@ showHours d = printf "%.1f h" $ realToFrac d / (3600 :: Double)
 
 -- XXX: The calendar interval formulas are gross, can they be made cleaner?
 
-today :: IO (Interval LocalTime)
-today = dayOf <$> getZonedTime
-
 -- | Time span for day of the given time stamp.
 dayOf :: ZonedTime -> Interval LocalTime
 dayOf now = start ... end
  where
   start = (zonedTimeToLocalTime now) { localTimeOfDay = midnight }
   end   = start { localDay = addDays 1 (localDay start) }
-
-thisMonth :: IO (Interval LocalTime)
-thisMonth = monthOf <$> getZonedTime
 
 -- | Time span for the month of the given time stamp.
 monthOf :: ZonedTime -> Interval LocalTime
