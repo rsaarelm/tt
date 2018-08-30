@@ -96,19 +96,22 @@ clockOut timeExpr comment = do
 checkBreak :: ContextIO ()
 checkBreak = do
   onBreak <- onBreak
-  when onBreak $ liftIO $ die "On scheduled break, clocking in or out not allowed."
+  when (isJust onBreak) $ liftIO $ die "On scheduled break, clocking in or out not allowed."
 
 getCurrentProject :: ContextIO (Maybe String)
 getCurrentProject = currentProject <$> loadWork
 
 -- | Return if the log has a scheduled break that will end in the future.
 --
--- Clocking in or out during break should not be allowed.
-onBreak :: ContextIO Bool
+-- Clocking in or out during break should not be allowed. If break is ongoing,
+-- the return value will the time when the break is over.
+onBreak :: ContextIO (Maybe LocalTime)
 onBreak = do
   start <- currentProjectStart <$> loadUnsealedWork
-  t <- now <$> ask
-  return $ maybe False (zonedTimeToLocalTime t <) start
+  t <- zonedTimeToLocalTime . now <$> ask
+  return $ case start of
+    Nothing -> Nothing
+    Just s -> if t < s then Just s else Nothing
 
 --todo :: [String] -> IO ()
 --todo text = do
