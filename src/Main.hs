@@ -131,33 +131,6 @@ current = do
         endTime = formatTime defaultTimeLocale "%H:%M" $ sup (asTimeInterval s)
       Nothing -> return ()
 
-balance :: Maybe String -> IO ()
-balance proj = do
-  thisMonth <- thisMonth
-  today     <- today
-  work      <- loadWork
-  -- Some chances to drop out with a Nothing value, so drop into a Maybe monad
-  ( fromMaybe (\_ -> return ()) $ do
-      p        <- proj <|> currentProject work
-      interval <- thisMonth `before` today
-      let sessions     = work `onProject` p `during` interval
-
-      let amountWorked = duration sessions
-      let numDays      = daysCovered (map asTimeInterval sessions)
-      let nominalHour  = nominalDay / 24
-      let targetAmount = nominalHour * 7.5 * fromIntegral numDays
-      let balance      = amountWorked - targetAmount
-      return
-        ( \_ -> do
-          printf "%s hours over %d days this month in project %s\n"
-                 (showHours amountWorked)
-                 numDays
-                 p
-          printf "Flexitime balance %s\n" (showHours balance)
-        )
-    )
-    ()
-
 
 goals :: IO ()
 goals = do
