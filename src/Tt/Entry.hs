@@ -11,6 +11,7 @@ module Tt.Entry (
   Session(Session, sessionTime, sessionAmount, sessionUnit),
 ) where
 
+import           Data.Semigroup
 import           Data.Time
 import           Numeric.Interval.NonEmpty
 import           Text.Printf
