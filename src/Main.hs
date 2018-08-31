@@ -61,10 +61,12 @@ type ContextIO a = ReaderT Ctx IO a
 runCmd :: Cmd -> ContextIO ()
 runCmd (In at project comment) = clockIn at project comment
 runCmd (Out project comment) = clockOut project comment
+runCmd (Break for comment) = projectBreak for comment
 runCmd (Todo msg) = todo msg
 runCmd (Done timestamp msg) = done timestamp msg
-runCmd cmd =
-  liftIO $ print "Hello world!"
+runCmd Timeclock = timeclock
+runCmd Current = current
+runCmd Goals = goals
 
 adjustTime :: Maybe String -> ContextIO ZonedTime
 adjustTime expr = do
@@ -98,6 +100,22 @@ clockOut timeExpr comment = do
       append $ Msg.clockOut t comment
       liftIO $ printf "Clocked out of %s.\n" project
     Nothing -> liftIO $ die "Error: Not clocked in a project."
+
+projectBreak :: String -> Maybe String -> ContextIO ()
+projectBreak timeExpr comment = do
+  onBreak <- onBreak
+  when (isJust onBreak) $ liftIO $ die "Already on break."
+  current <- getCurrentProject
+  startTime <- now <$> ask
+  endTime <- adjustTime (Just timeExpr)
+  case current of
+    Just project -> do
+      append $ Msg.clockOut startTime comment
+      append $ Msg.clockIn endTime project Nothing
+      liftIO $ printf "On break from %s until %s.\n"
+        project
+        (formatTime defaultTimeLocale "%H:%M:%S" endTime)
+    Nothing -> liftIO $ die "Not clocked in, nothing to take break from."
 
 checkBreak :: ContextIO ()
 checkBreak = do
@@ -140,58 +158,59 @@ done timestamp msg = do
   puntBack t ('^':cs) = puntBack (yesterday t) cs
   puntBack t s        = Msg.done t s
 
---timeclock :: IO ()
---timeclock = do
---  work <- loadUnsealedWork
---  mapM_ putStrLn (timeClocks work)
---
---
---current :: IO ()
---current = do
---  work  <- loadWork
---  today <- today
---  now   <- getZonedTime
---  case currentProject work of
---    Just project -> do
---      let todaysTime = duration $ onCurrentProject work `during` today
---      printf "%s %s\n" project (showHours todaysTime)
---    Nothing -> case plannedProject work (zonedTimeToLocalTime now) of
---      Just (p, s) -> printf "%s until %s\n" p endTime
---       where
---        endTime = formatTime defaultTimeLocale "%H:%M" $ sup (asTimeInterval s)
---      Nothing -> return ()
---
---
---goals :: IO ()
---goals = do
---  goals <- loadGoals
---  now   <- getZonedTime
---  unless (null goals) $ showGoals goals now
--- where
---  showGoals goals now = do
---    printf
---      "goal               current (target)   deadline                 failures\n"
---    printf
---      "------------------|------------------|------------------------|--------\n"
---    mapM_ (printGoal now) goals
---
---printGoal :: ZonedTime -> (Project, Goal) -> IO ()
---printGoal now (p, g) = printf
---  "%-18s %-18s %-24s %s\n"
---  p
---  ( printf "%s %s %s"
---           (showUnit (goalValue g) (goalUnit g))
---           (if goalSlope g > 0 then "↑" else "↓")
---           (showUnit (fromIntegral $ ceiling (goalTarget g')) (goalUnit g')) :: String
---  )
---  (Msg.deadline now (failureTime g))
---  (if failureCount g > 0 then show (failureCount g) else "")
--- where
---  -- Show target point at next midnight where today's goal failure will be
---  -- checked.
---  g' = updateGoalClock g nextMidnight
---  nextMidnight =
---    LocalTime (1 `addDays` localDay (zonedTimeToLocalTime now)) midnight
+timeclock :: ContextIO ()
+timeclock = do
+  work <- loadUnsealedWork
+  mapM_ (liftIO . putStrLn) (timeClocks work)
+
+
+current :: ContextIO ()
+current = do
+  work  <- loadWork
+  today <- today
+  t     <- now <$> ask
+  -- TODO: Handle breaks as well
+  case currentProject work of
+    Just project -> do
+      let todaysTime = duration $ onCurrentProject work `during` today
+      liftIO $ printf "%s %s\n" project (showHours todaysTime)
+    Nothing -> case plannedProject work (zonedTimeToLocalTime t) of
+      Just (p, s) -> liftIO $ printf "%s until %s\n" p endTime
+       where
+        endTime = formatTime defaultTimeLocale "%H:%M" $ sup (asTimeInterval s)
+      Nothing -> return ()
+
+
+goals :: ContextIO ()
+goals = do
+  goals <- loadGoals
+  t     <- now <$> ask
+  unless (null goals) $ showGoals goals t
+ where
+  showGoals goals t = do
+    liftIO $ printf
+      "goal               current (target)   deadline                 failures\n"
+    liftIO $ printf
+      "------------------|------------------|------------------------|--------\n"
+    mapM_ (printGoal t) goals
+
+printGoal :: ZonedTime -> (Project, Goal) -> ContextIO ()
+printGoal now (p, g) = liftIO $ printf
+  "%-18s %-18s %-24s %s\n"
+  p
+  ( printf "%s %s %s"
+           (showUnit (goalValue g) (goalUnit g))
+           (if goalSlope g > 0 then "↑" else "↓")
+           (showUnit (fromIntegral $ ceiling (goalTarget g')) (goalUnit g')) :: String
+  )
+  (Msg.deadline now (failureTime g))
+  (if failureCount g > 0 then show (failureCount g) else "")
+ where
+  -- Show target point at next midnight where today's goal failure will be
+  -- checked.
+  g' = updateGoalClock g nextMidnight
+  nextMidnight =
+    LocalTime (1 `addDays` localDay (zonedTimeToLocalTime now)) midnight
 
 append :: String -> ContextIO ()
 append entry = do
@@ -210,13 +229,13 @@ loadUnsealedWork :: ContextIO WorkState
 loadUnsealedWork = toWorkState <$> (db <$> ask)
 
 
---loadGoals :: IO [(Project, Goal)]
---loadGoals = do
---  work <- loadWork
---  now  <- getZonedTime
---  return $ sortWith (\(_, g) -> failureTime g) $ map
---    (\(p, g) -> (p, updateGoalClock g (zonedTimeToLocalTime now)))
---    (activeGoals (entries work))
+loadGoals :: ContextIO [(Project, Goal)]
+loadGoals = do
+  work <- loadWork
+  t  <- now <$> ask
+  return $ sortWith (\(_, g) -> failureTime g) $ map
+    (\(p, g) -> (p, updateGoalClock g (zonedTimeToLocalTime t)))
+    (activeGoals (entries work))
 
 today :: ContextIO (Interval LocalTime)
 today = dayOf <$> (now <$> ask)
