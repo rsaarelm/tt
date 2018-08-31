@@ -50,7 +50,11 @@ main = do
 
 type Db = [RawEntry]
 
-data Ctx = Ctx { now :: ZonedTime, db :: Db, todoPath :: FilePath } deriving Show
+data Ctx = Ctx {
+    now :: ZonedTime
+  , db :: !Db
+  , todoPath :: FilePath
+} deriving Show
 
 type ContextIO a = ReaderT Ctx IO a
 
