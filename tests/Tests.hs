@@ -189,6 +189,32 @@ main = hspec $ do
       "x 2018-03-10 DROP GOAL floss" `shouldParseEntry`
         EndGoal (d 2018 3 10) "floss"
 
+  describe "Relative time parser" $ do
+    it "parsers boot time" $
+      "boot" `timeShouldParse` SinceSystemStartup
+    it "parser absolute time" $
+      "07:15" `timeShouldParse` AbsoluteTime (TimeOfDay 7 15 0)
+    it "parser absolute time with seconds" $
+      "07:15:30" `timeShouldParse` AbsoluteTime (TimeOfDay 7 15 30)
+    it "parser 24h absolute time" $
+      "19:15" `timeShouldParse` AbsoluteTime (TimeOfDay 19 15 0)
+    it "parser relative time in hours" $
+      "in 5 h" `timeShouldParse` RelativeTime (secondsToDiffTime (3600 * 5))
+    it "parser relative time without space" $
+      "in 5h" `timeShouldParse` RelativeTime (secondsToDiffTime (3600 * 5))
+    it "parser negative relative time" $
+      "in -5 h" `timeShouldParse` RelativeTime (secondsToDiffTime (3600 * (-5)))
+    it "parser fractional relative time" $
+      "in 5.5 h" `timeShouldParse` RelativeTime (secondsToDiffTime (3600 * 5 + 1800))
+    it "parser retroactive relative time in hours" $
+      "5 h ago" `timeShouldParse` RelativeTime (secondsToDiffTime (3600 * (-5)))
+    it "parser total time" $
+      "after 8 h" `timeShouldParse` AfterTotalTime (secondsToDiffTime (3600 * 8))
+    it "parser relative time in minutes" $
+      "in 30 min" `timeShouldParse` RelativeTime (secondsToDiffTime (60 * 30))
+    it "parser relative time in minutes without space" $
+      "in 30min" `timeShouldParse` RelativeTime (secondsToDiffTime (60 * 30))
+
 -- Utility functions
 
 shouldNotParse :: String -> () -> Expectation
@@ -208,6 +234,12 @@ shouldParseAsPlanned s (expectedName, expected) =
 shouldParseEntry :: String -> Entry -> Expectation
 shouldParseEntry s expected =
   parseEntry s `shouldBe` Just (CleanEntry expected)
+
+timeShouldParse :: String -> TimeExpr -> Expectation
+timeShouldParse s expected = parseTimeExpr s `shouldBe` Just expected
+
+timeShouldNotParse :: String -> () -> Expectation
+timeShouldNotParse s _ = parseTimeExpr s `shouldBe` Nothing
 
 d :: Integer -> Int -> Int -> Day
 d = fromGregorian

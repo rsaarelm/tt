@@ -1,5 +1,7 @@
 module Tt.Parser (
-  parseEntry
+  parseEntry,
+  TimeExpr(AbsoluteTime, RelativeTime, AfterTotalTime, SinceSystemStartup),
+  parseTimeExpr,
 ) where
 
 import           Control.Monad
@@ -9,6 +11,42 @@ import           Data.Time
 import           Text.Parsec
 import           Text.Parsec.String        (Parser)
 import           Tt.Entry
+
+data TimeExpr =
+    AbsoluteTime TimeOfDay
+  | RelativeTime DiffTime
+  | AfterTotalTime DiffTime
+  | SinceSystemStartup
+  deriving (Eq, Show)
+
+-- | Try to parse a line of thext into a timeExpr
+parseTimeExpr :: String -> Maybe TimeExpr
+parseTimeExpr s = case parse timeExprParser "" s of
+  Right e -> Just e
+  Left  _ -> Nothing
+
+timeExprParser :: Parser TimeExpr
+timeExprParser =
+      try absoluteTime
+  <|> try relativeTime
+  <|> try negativeRelativeTime
+  <|> try afterTotalTime
+  <|> try sinceStartup
+ where
+  absoluteTime = AbsoluteTime <$> timeOfDay
+  relativeTime = RelativeTime <$> (tok (string "in") *> diffTime)
+  negativeRelativeTime = RelativeTime . negate <$> diffTime <* many1 space <* string "ago"
+  afterTotalTime = AfterTotalTime <$> (tok (string "after") *> diffTime)
+  sinceStartup = const SinceSystemStartup <$> tok (string "boot")
+
+diffTime :: Parser DiffTime
+diffTime =
+  secondsToDiffTime . truncate <$>
+    (try ((* 60) <$> parseMinutes) <|> try ((* 3600) <$> parseHours))
+ where
+  parseMinutes = number <* skipMany space <* string "min"
+  parseHours = number <* skipMany space <* string "h"
+
 
 -- | Try to parse a line of text into an Entry
 parseEntry :: String -> Maybe RawEntry
