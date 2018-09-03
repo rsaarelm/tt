@@ -11,11 +11,12 @@ import           Data.Time
 import           Text.Parsec
 import           Text.Parsec.String        (Parser)
 import           Tt.Entry
+import           Tt.Util
 
 data TimeExpr =
     AbsoluteTime TimeOfDay
-  | RelativeTime DiffTime
-  | AfterTotalTime DiffTime
+  | RelativeTime NominalDiffTime
+  | AfterTotalTime NominalDiffTime
   | SinceSystemStartup
   deriving (Eq, Show)
 
@@ -39,9 +40,9 @@ timeExprParser =
   afterTotalTime = AfterTotalTime <$> (tok (string "after") *> diffTime)
   sinceStartup = const SinceSystemStartup <$> tok (string "boot")
 
-diffTime :: Parser DiffTime
+diffTime :: Parser NominalDiffTime
 diffTime =
-  secondsToDiffTime . truncate <$>
+  secondsToNominalDiffTime . fromIntegral . truncate <$>
     (try ((* 60) <$> parseMinutes) <|> try ((* 3600) <$> parseHours))
  where
   parseMinutes = number <* skipMany space <* string "min"

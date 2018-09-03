@@ -6,6 +6,7 @@ import           Test.Hspec
 import           Tt.Entry
 import           Tt.Goal
 import           Tt.Parser
+import           Tt.Util
 
 main :: IO ()
 main = hspec $ do
@@ -199,21 +200,21 @@ main = hspec $ do
     it "parser 24h absolute time" $
       "19:15" `timeShouldParse` AbsoluteTime (TimeOfDay 19 15 0)
     it "parser relative time in hours" $
-      "in 5 h" `timeShouldParse` RelativeTime (secondsToDiffTime (3600 * 5))
+      "in 5 h" `timeShouldParse` RelativeTime (secondsToNominalDiffTime (3600 * 5))
     it "parser relative time without space" $
-      "in 5h" `timeShouldParse` RelativeTime (secondsToDiffTime (3600 * 5))
+      "in 5h" `timeShouldParse` RelativeTime (secondsToNominalDiffTime (3600 * 5))
     it "parser negative relative time" $
-      "in -5 h" `timeShouldParse` RelativeTime (secondsToDiffTime (3600 * (-5)))
+      "in -5 h" `timeShouldParse` RelativeTime (secondsToNominalDiffTime (3600 * (-5)))
     it "parser fractional relative time" $
-      "in 5.5 h" `timeShouldParse` RelativeTime (secondsToDiffTime (3600 * 5 + 1800))
+      "in 5.5 h" `timeShouldParse` RelativeTime (secondsToNominalDiffTime (3600 * 5 + 1800))
     it "parser retroactive relative time in hours" $
-      "5 h ago" `timeShouldParse` RelativeTime (secondsToDiffTime (3600 * (-5)))
+      "5 h ago" `timeShouldParse` RelativeTime (secondsToNominalDiffTime (3600 * (-5)))
     it "parser total time" $
-      "after 8 h" `timeShouldParse` AfterTotalTime (secondsToDiffTime (3600 * 8))
+      "after 8 h" `timeShouldParse` AfterTotalTime (secondsToNominalDiffTime (3600 * 8))
     it "parser relative time in minutes" $
-      "in 30 min" `timeShouldParse` RelativeTime (secondsToDiffTime (60 * 30))
+      "in 30 min" `timeShouldParse` RelativeTime (secondsToNominalDiffTime (60 * 30))
     it "parser relative time in minutes without space" $
-      "in 30min" `timeShouldParse` RelativeTime (secondsToDiffTime (60 * 30))
+      "in 30min" `timeShouldParse` RelativeTime (secondsToNominalDiffTime (60 * 30))
 
 -- Utility functions
 

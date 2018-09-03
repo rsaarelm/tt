@@ -8,16 +8,19 @@ module Tt.Util (
   daysCovered,
   addLocalTime,
   diffLocalTime,
+  secondsToNominalDiffTime,
   intervalDuration,
   AsTimeInterval(asTimeInterval)
 ) where
 
+import           Data.Fixed
 import           Data.List
 import           Data.Ratio
 import           Data.Time
 import           Numeric
 import           Numeric.Interval.NonEmpty
 import           Text.Printf
+import           Unsafe.Coerce
 
 -- | Pretty-print a rational as decimal
 showRat :: Rational -> String
@@ -80,6 +83,11 @@ addLocalTime x = utcToLocalTime utc . addUTCTime x . localTimeToUTC utc
 -- XXX: Copied from time 1.9, remove when stack can install 1.9
 diffLocalTime :: LocalTime -> LocalTime -> NominalDiffTime
 diffLocalTime a b = diffUTCTime (localTimeToUTC utc a) (localTimeToUTC utc b)
+
+-- XXX: Also from time 1.9, doing things the hacky way since the proper way is
+-- private in 1.8.
+secondsToNominalDiffTime :: Pico -> NominalDiffTime
+secondsToNominalDiffTime = unsafeCoerce
 
 intervalDuration :: Interval LocalTime -> NominalDiffTime
 intervalDuration i = sup i `diffLocalTime` inf i
