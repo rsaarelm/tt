@@ -56,7 +56,7 @@ parseCmd :: Parser Cmd
 parseCmd = subparser $
   command "in" (info
       (In
-        <$> atOpt
+        <$> (atOpt <|> inOpt)
         <*> argument str (metavar "project")
         <*> (maybeWords <$> many (argument str (metavar "comment"))))
       $ progDesc "Clock in to a project")
@@ -100,7 +100,7 @@ parseCmd = subparser $
              (long "after" <> metavar "RELTIME_EXPR" <> value Nothing
                <> help "Adjust to happen after total [TIME_EXPR] spent today")
 
-  forOpt = option str
+  forOpt = (option $ ("in " ++) <$> str)
            (long "for" <> metavar "RELTIME_EXPR"
              <> help "Duration for break")
 

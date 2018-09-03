@@ -69,17 +69,38 @@ runCmd Current = current
 runCmd Goals = goals
 
 adjustTime :: Maybe String -> ContextIO ZonedTime
-adjustTime expr = do
-  t <- now <$> ask
-  case parseTimeAdjust t (fromMaybe "" expr) of
-    Left err -> liftIO $ die err
-    Right time -> return time
+adjustTime expr =
+  case expr of
+    Nothing -> asks now
+    Just e -> handleTimeExpr e
 
-parseTimeAdjust :: ZonedTime -> String -> Either String ZonedTime
-parseTimeAdjust now expr =
-  -- TODO: Modify time now according to expr
-  -- TODO: If expr does not parse as valid time adjustment, return error
-  Right now
+handleTimeExpr :: String -> ContextIO ZonedTime
+handleTimeExpr expr = do
+  t <- asks now
+  case parseTimeExpr expr of
+    Just (AbsoluteTime timeOfDay) ->
+      return $ t {
+        zonedTimeToLocalTime = (zonedTimeToLocalTime t) {
+          localTimeOfDay = timeOfDay
+        }
+      }
+    Just (RelativeTime diff) -> return $ t {
+        zonedTimeToLocalTime = diff `addLocalTime` zonedTimeToLocalTime t
+     }
+    Just (AfterTotalTime diff) -> undefined
+    Just SinceSystemStartup -> do
+      uptime <- liftIO systemUptime
+      return $ t {
+        zonedTimeToLocalTime = negate uptime `addLocalTime` zonedTimeToLocalTime t
+      }
+    Nothing -> liftIO $ die (printf "Couldn't parse time expression '%s'" expr)
+
+systemUptime :: IO NominalDiffTime
+systemUptime = do
+  -- XXX: Linux only
+  uptime <- readFile "/proc/uptime"
+  let uptimeSeconds = (read $ head $ words uptime) :: Float
+  return $ secondsToNominalDiffTime $ fromIntegral $ truncate uptimeSeconds
 
 clockIn :: Maybe String -> String -> Maybe String -> ContextIO ()
 clockIn timeExpr project comment = do
@@ -87,8 +108,9 @@ clockIn timeExpr project comment = do
   t <- adjustTime timeExpr
   current <- getCurrentProject
   when (isJust current) (clockOut timeExpr Nothing)
-  append $ Msg.clockIn t project comment
-  liftIO $ printf "Clocked into %s.\n" project
+  let msg = Msg.clockIn t project comment
+  append msg
+  liftIO $ printf "Clock in: %s\n" msg
 
 clockOut :: Maybe String -> Maybe String -> ContextIO ()
 clockOut timeExpr comment = do
@@ -97,8 +119,9 @@ clockOut timeExpr comment = do
   current <- getCurrentProject
   case current of
     Just project -> do
-      append $ Msg.clockOut t comment
-      liftIO $ printf "Clocked out of %s.\n" project
+      let msg = Msg.clockOut t comment
+      append msg
+      liftIO $ printf "Clock out: %s\n" msg
     Nothing -> liftIO $ die "Error: Not clocked in a project."
 
 projectBreak :: String -> Maybe String -> ContextIO ()
@@ -106,7 +129,7 @@ projectBreak timeExpr comment = do
   onBreak <- onBreak
   when (isJust onBreak) $ liftIO $ die "Already on break."
   current <- getCurrentProject
-  startTime <- now <$> ask
+  startTime <- asks now
   endTime <- adjustTime (Just timeExpr)
   case current of
     Just project -> do
@@ -132,21 +155,21 @@ getCurrentProject = currentProject <$> loadWork
 onBreak :: ContextIO (Maybe LocalTime)
 onBreak = do
   start <- currentProjectStart <$> loadUnsealedWork
-  t <- zonedTimeToLocalTime . now <$> ask
+  t <- asks (zonedTimeToLocalTime . now)
   return $ case start of
     Nothing -> Nothing
     Just s -> if t < s then Just s else Nothing
 
 todo :: String -> ContextIO ()
 todo msg = do
-  t <- now <$> ask
+  t <- asks now
   let entry = Msg.todo t msg
   append entry
   liftIO $ printf "Todo task added: %s\n" entry
 
 done :: Bool -> String -> ContextIO ()
 done timestamp msg = do
-  t <- now <$> ask
+  t <- asks now
   let entry = processMsg t msg
   append entry
   liftIO $ printf "Done task added: %s\n" entry
@@ -168,7 +191,7 @@ current :: ContextIO ()
 current = do
   work  <- loadWork
   today <- today
-  t     <- now <$> ask
+  t     <- asks now
   -- TODO: Handle breaks as well
   case currentProject work of
     Just project -> do
@@ -184,7 +207,7 @@ current = do
 goals :: ContextIO ()
 goals = do
   goals <- loadGoals
-  t     <- now <$> ask
+  t     <- asks now
   unless (null goals) $ showGoals goals t
  where
   showGoals goals t = do
@@ -214,28 +237,28 @@ printGoal now (p, g) = liftIO $ printf
 
 append :: String -> ContextIO ()
 append entry = do
-  path <- todoPath <$> ask
+  path <- asks todoPath
   liftIO $ appendFile path (entry ++ "\n")
 
 loadWork :: ContextIO WorkState
 loadWork = do
   work <- loadUnsealedWork
-  now  <- now <$> ask
+  now  <- asks now
   return $ seal now work
 
 -- | Unsealed work will not have a session for the currently open project, but
 -- it's what you want if you're printing timeclocks.
 loadUnsealedWork :: ContextIO WorkState
-loadUnsealedWork = toWorkState <$> (db <$> ask)
+loadUnsealedWork = toWorkState <$> (asks db)
 
 
 loadGoals :: ContextIO [(Project, Goal)]
 loadGoals = do
   work <- loadWork
-  t  <- now <$> ask
+  t  <- asks now
   return $ sortWith (\(_, g) -> failureTime g) $ map
     (\(p, g) -> (p, updateGoalClock g (zonedTimeToLocalTime t)))
     (activeGoals (entries work))
 
 today :: ContextIO (Interval LocalTime)
-today = dayOf <$> (now <$> ask)
+today = dayOf <$> asks now
