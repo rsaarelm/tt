@@ -87,7 +87,11 @@ handleTimeExpr expr = do
     Just (RelativeTime diff) -> return $ t {
         zonedTimeToLocalTime = diff `addLocalTime` zonedTimeToLocalTime t
      }
-    Just (AfterTotalTime diff) -> undefined
+    Just (AfterTotalTime diff) -> do
+      workSoFar <- currentProjectToday
+      return $ t {
+        zonedTimeToLocalTime = (diff - workSoFar) `addLocalTime` zonedTimeToLocalTime t
+      }
     Just SinceSystemStartup -> do
       uptime <- liftIO systemUptime
       return $ t {
@@ -195,13 +199,19 @@ current = do
   -- TODO: Handle breaks as well
   case currentProject work of
     Just project -> do
-      let todaysTime = duration $ onCurrentProject work `during` today
+      todaysTime <- currentProjectToday
       liftIO $ printf "%s %s\n" project (showHours todaysTime)
     Nothing -> case plannedProject work (zonedTimeToLocalTime t) of
       Just (p, s) -> liftIO $ printf "%s until %s\n" p endTime
        where
         endTime = formatTime defaultTimeLocale "%H:%M" $ sup (asTimeInterval s)
       Nothing -> return ()
+
+currentProjectToday :: ContextIO NominalDiffTime
+currentProjectToday = do
+  work <- loadWork
+  today <- today
+  return $ duration $ onCurrentProject work `during` today
 
 
 goals :: ContextIO ()
@@ -249,7 +259,7 @@ loadWork = do
 -- | Unsealed work will not have a session for the currently open project, but
 -- it's what you want if you're printing timeclocks.
 loadUnsealedWork :: ContextIO WorkState
-loadUnsealedWork = toWorkState <$> (asks db)
+loadUnsealedWork = toWorkState <$> asks db
 
 
 loadGoals :: ContextIO [(Project, Goal)]
