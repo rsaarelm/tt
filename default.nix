@@ -1,5 +1,8 @@
-{ pkgs ? import <nixpkgs> {} }: pkgs.haskellPackages.developPackage
-  { root = ./.;
+{ pkgs ? import <nixpkgs> {} }:
+
+let
+  pkg = pkgs.haskellPackages.developPackage {
+    root = ./.;
     overrides = self: super:
       { # Don't run a package's test suite
         # foo = pkgs.haskell.lib.dontCheck pkgs.haskellPackages.foo;
@@ -23,4 +26,13 @@
         #     sha256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
         #   };
       };
-  }
+  };
+in
+  pkg.overrideAttrs(attr: {
+    # Shell stuff
+    buildInputs = [
+      pkgs.cabal-install
+      pkgs.hlint
+      pkgs.haskellPackages.brittany
+    ];
+  })
