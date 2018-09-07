@@ -197,7 +197,7 @@ day :: Parser Int
 day = fromIntegral <$> belowHundred 3
 
 hour :: Parser Int
-hour = fromIntegral <$> belowHundred 2
+hour = fromIntegral <$> belowHundred 2 <|> read <$> count 1 digit
 
 minute :: Parser Int
 minute = fromIntegral <$> belowHundred 5

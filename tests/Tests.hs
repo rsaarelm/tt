@@ -197,6 +197,8 @@ main = hspec $ do
       "07:15" `timeShouldParse` AbsoluteTime (TimeOfDay 7 15 0)
     it "parser absolute time with seconds" $
       "07:15:30" `timeShouldParse` AbsoluteTime (TimeOfDay 7 15 30)
+    it "parser absolute time without leading zero" $
+      "7:15" `timeShouldParse` AbsoluteTime (TimeOfDay 7 15 0)
     it "parser 24h absolute time" $
       "19:15" `timeShouldParse` AbsoluteTime (TimeOfDay 19 15 0)
     it "parser relative time in hours" $
