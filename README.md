@@ -22,6 +22,11 @@ install tt:
     stack build
     stack install
 
+If you are using [NixOS Linux](https://nixos.org/), you can install tt as a
+local package by doing
+
+    nix-env -f default.nix -i tt
+
 ## TODO items
 
 Tt is not a complete todo application. You are assumed to use a text editor or
