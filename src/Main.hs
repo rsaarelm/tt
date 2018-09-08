@@ -304,4 +304,6 @@ loadGoals = do
     (activeGoals (entries work))
 
 today :: ContextIO (Interval LocalTime)
-today = dayOf <$> asks now
+today = do
+  t <- asks (zonedTimeToLocalTime . now)
+  return $ t { localTimeOfDay = midnight } ... t
