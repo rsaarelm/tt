@@ -71,8 +71,12 @@ currentProjectStart state = snd <$> currentStart state
 plannedProject :: WorkState -> LocalTime -> Maybe (Project, Session)
 plannedProject state t = listToMaybe $ mapMaybe f (entries state)
  where
-  f (PlannedSession p s) | t `member` asTimeInterval s = Just (p, s)
-  f _                    = Nothing
+  -- If the end of the session is in the future (check 1 second after now),
+  -- show it as planned work.
+  f (SessionEntry p s) | (tPlusOne `member` asTimeInterval s) && sessionHasTimeOfDay s
+    = Just (p, s)
+  f _ = Nothing
+  tPlusOne = secondsToNominalDiffTime 1 `addLocalTime` t
 
 updateState :: WorkState -> RawEntry -> WorkState
 updateState state (ClockIn day (time, _) project) =

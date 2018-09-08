@@ -1,13 +1,14 @@
 {-# LANGUAGE DeriveFunctor #-}
 
 module Tt.Entry (
-  Entry(SessionEntry, PlannedSession, StartGoal, EndGoal),
+  Entry(SessionEntry, StartGoal, EndGoal),
   RawEntry(ClockIn, ClockOut, CleanEntry),
   entrySortKey,
   Project,
   Value(Add, Set),
   Unit(Duration, Named),
   showUnit,
+  sessionHasTimeOfDay,
   Session(Session, sessionTime, sessionAmount, sessionUnit),
 ) where
 
@@ -21,7 +22,6 @@ import           Tt.Util
 -- Clock values from raw entries are converted into SessionEntries.
 data Entry =
     SessionEntry Project Session
-  | PlannedSession Project Session
   | StartGoal Day Project Rational (Maybe Unit)
   | EndGoal Day Project
   deriving (Eq, Show)
@@ -43,7 +43,6 @@ entrySortKey :: RawEntry -> (LocalTime, Int)
 entrySortKey (ClockIn d (t, _) _) = (LocalTime d t, 1)
 entrySortKey (ClockOut d (t, _)) = (LocalTime d t, 0)
 entrySortKey (CleanEntry (SessionEntry _ s)) = (inf $ asTimeInterval s, 0)
-entrySortKey (CleanEntry (PlannedSession _ s)) = (inf $ asTimeInterval s, 0)
 entrySortKey (CleanEntry (StartGoal d _ _ _)) = (LocalTime d midnight, 0)
 entrySortKey (CleanEntry (EndGoal d _)) = (LocalTime (addDays 1 d) midnight, 0)
 
@@ -76,6 +75,18 @@ showUnit amount (Just Duration) =
   printf "%s h" (showRat (amount / 3600))
 showUnit amount (Just (Named u)) = unwords [showRat amount, u]
 showUnit amount Nothing          = showRat amount
+
+sessionHasTimeOfDay :: Session -> Bool
+sessionHasTimeOfDay s =
+  -- XXX: This is a hack that checks for the default value (midnight) for the
+  -- non-timed sessions, but you can have timed sessions where the time is
+  -- exactly at midnight and then this will give the wrong result. To fix,
+  -- change Session data to have (Day, Maybe TimeOfDay) in place of LocalTime
+  -- and check for the time of day one being Nothing here.
+  --
+  -- Also maybe the user should just go to sleep instead of planning work
+  -- sessions that start at 00:00:00.
+  localTimeOfDay (sessionTime s) /= midnight
 
 -- | A single unit of work
 data Session = Session {
