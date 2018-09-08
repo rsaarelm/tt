@@ -77,25 +77,31 @@ adjustTime expr =
 handleTimeExpr :: String -> ContextIO ZonedTime
 handleTimeExpr expr = do
   t <- asks now
+  start <- currentProjectStart <$> loadUnsealedWork
+  -- If the current work session starts later than current time, when figuring
+  -- the end time for after we must use this as the start time.
+  let lt = zonedTimeToLocalTime t
+  let afterStartTime = fromMaybe lt start `max` lt
+
   case parseTimeExpr expr of
     Just (AbsoluteTime timeOfDay) ->
       return $ t {
-        zonedTimeToLocalTime = (zonedTimeToLocalTime t) {
+        zonedTimeToLocalTime = lt {
           localTimeOfDay = timeOfDay
         }
       }
     Just (RelativeTime diff) -> return $ t {
-        zonedTimeToLocalTime = diff `addLocalTime` zonedTimeToLocalTime t
+        zonedTimeToLocalTime = diff `addLocalTime` lt
      }
     Just (AfterTotalTime diff) -> do
       workSoFar <- currentProjectToday
       return $ t {
-        zonedTimeToLocalTime = (diff - workSoFar) `addLocalTime` zonedTimeToLocalTime t
+        zonedTimeToLocalTime = (diff - workSoFar) `addLocalTime` afterStartTime
       }
     Just SinceSystemStartup -> do
       uptime <- liftIO systemUptime
       return $ t {
-        zonedTimeToLocalTime = negate uptime `addLocalTime` zonedTimeToLocalTime t
+        zonedTimeToLocalTime = negate uptime `addLocalTime` lt
       }
     Nothing -> liftIO $ die (printf "Couldn't parse time expression '%s'" expr)
 
@@ -119,16 +125,19 @@ clockIn timeExpr project comment = do
 
 clockOut :: Maybe String -> Maybe String -> ContextIO ()
 clockOut timeExpr comment = do
-  checkBreak
   checkPlanned
   t <- adjustTime timeExpr
   current <- getCurrentProject
-  case current of
-    Just project -> do
+  startTime <- currentProjectStart <$> loadUnsealedWork
+  -- TODO: See that checkout is later than start...
+  case (current, startTime) of
+    (Just project, Just start) | start > (zonedTimeToLocalTime t) ->
+      liftIO $ die "Error: Trying to clock out before current session starts"
+    (Just project, _) -> do
       let msg = Msg.clockOut t comment
       append msg
       liftIO $ printf "Clock out: %s\n" msg
-    Nothing -> liftIO $ die "Error: Not clocked in a project."
+    (Nothing, _) -> liftIO $ die "Error: Not clocked in a project."
 
 projectBreak :: String -> Maybe String -> ContextIO ()
 projectBreak timeExpr comment = do
@@ -149,12 +158,14 @@ projectBreak timeExpr comment = do
 checkBreak :: ContextIO ()
 checkBreak = do
   onBreak <- onBreak
-  when (isJust onBreak) $ liftIO $ die "On scheduled break, clocking in or out not allowed."
+  when (isJust onBreak) $ liftIO $ die "On scheduled break, clocking in not allowed."
 
 checkPlanned :: ContextIO ()
 checkPlanned = do
+  onBreak <- onBreak
   inPlanned <- inPlanned
-  when (isJust inPlanned) $ liftIO $ die "In pre-planned session, clocking in or out not allowed."
+  when (isJust inPlanned && isNothing onBreak) $
+    liftIO $ die "In pre-planned session, clocking in or out not allowed."
 
 getCurrentProject :: ContextIO (Maybe String)
 getCurrentProject = currentProject <$> loadWork
