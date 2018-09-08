@@ -228,7 +228,7 @@ current = do
     (Just until, Just project) -> do
       todaysTime <- currentProjectToday
       liftIO $ printf
-        "%s %s, on break until %s" project (showHours todaysTime) (ftime until)
+        "%s %s, on break until %s\n" project (showHours todaysTime) (ftime until)
     (_, Just project) -> do
       todaysTime <- currentProjectToday
       liftIO $ printf "%s %s\n" project (showHours todaysTime)
