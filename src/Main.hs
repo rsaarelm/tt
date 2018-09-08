@@ -109,6 +109,7 @@ systemUptime = do
 clockIn :: Maybe String -> String -> Maybe String -> ContextIO ()
 clockIn timeExpr project comment = do
   checkBreak
+  checkPlanned
   t <- adjustTime timeExpr
   current <- getCurrentProject
   when (isJust current) (clockOut timeExpr Nothing)
@@ -119,6 +120,7 @@ clockIn timeExpr project comment = do
 clockOut :: Maybe String -> Maybe String -> ContextIO ()
 clockOut timeExpr comment = do
   checkBreak
+  checkPlanned
   t <- adjustTime timeExpr
   current <- getCurrentProject
   case current of
@@ -149,6 +151,11 @@ checkBreak = do
   onBreak <- onBreak
   when (isJust onBreak) $ liftIO $ die "On scheduled break, clocking in or out not allowed."
 
+checkPlanned :: ContextIO ()
+checkPlanned = do
+  inPlanned <- inPlanned
+  when (isJust inPlanned) $ liftIO $ die "In pre-planned session, clocking in or out not allowed."
+
 getCurrentProject :: ContextIO (Maybe String)
 getCurrentProject = currentProject <$> loadWork
 
@@ -158,11 +165,20 @@ getCurrentProject = currentProject <$> loadWork
 -- the return value will the time when the break is over.
 onBreak :: ContextIO (Maybe LocalTime)
 onBreak = do
+  -- XXX: This will only detect a break before an open ClockIn item, not
+  -- before a closed task set in the future.
   start <- currentProjectStart <$> loadUnsealedWork
   t <- asks (zonedTimeToLocalTime . now)
   return $ case start of
     Nothing -> Nothing
     Just s -> if t < s then Just s else Nothing
+
+-- | Return if we're in a planned work session
+inPlanned :: ContextIO (Maybe (Project, Session))
+inPlanned = do
+  work <- loadWork
+  t <- asks (zonedTimeToLocalTime . now)
+  return $ plannedProject work t
 
 todo :: String -> ContextIO ()
 todo msg = do
@@ -196,16 +212,22 @@ current = do
   work  <- loadWork
   today <- today
   t     <- asks now
-  -- TODO: Handle breaks as well
-  case currentProject work of
-    Just project -> do
+  break <- onBreak
+  case (break, currentProject work) of
+    (Just until, Just project) -> do
+      todaysTime <- currentProjectToday
+      liftIO $ printf
+        "%s %s, on break until %s" project (showHours todaysTime) (ftime until)
+    (_, Just project) -> do
       todaysTime <- currentProjectToday
       liftIO $ printf "%s %s\n" project (showHours todaysTime)
-    Nothing -> case plannedProject work (zonedTimeToLocalTime t) of
+    (_, Nothing) -> case plannedProject work (zonedTimeToLocalTime t) of
       Just (p, s) -> liftIO $ printf "%s until %s\n" p endTime
        where
-        endTime = formatTime defaultTimeLocale "%H:%M" $ sup (asTimeInterval s)
+        endTime = ftime $ sup (asTimeInterval s)
       Nothing -> return ()
+   where
+    ftime = formatTime defaultTimeLocale "%H:%M"
 
 currentProjectToday :: ContextIO NominalDiffTime
 currentProjectToday = do
