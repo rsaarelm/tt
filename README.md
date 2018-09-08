@@ -31,24 +31,30 @@ your todo list. However, tt does provide you with `todo` and `done` commands
 to quickly add a new open or completed items to your `todo.txt` file from the
 command line.
 
-    tt todo "Buy milk @shop"
+    tt todo Buy milk @shop
 
 Most of the entries tt deals with are entered directly as done items. You can
 also enter done items to add a daily summary of what you did. See
 [wj](http://tylerneylon.com/a/wj/) for an explanation of such system.
 
-    tt done "+day Finished painting the deck"
+    tt done +day Finished painting the deck
 
 You can add a "^" to the start of the message to backdate it to yesterday.
 
-    tt done "^run 4 km  -- Late night run"
+    tt done ^run 4 km  -- Late night run
+
+To add the current time to the done item, use the -t flag:
+
+    tt done -t Did a thing right this minute
+
+If you use the "^" prefix, the -t flag will be ignored.
 
 ## Time tracking
 
 Clock in and out of projects, this generates lines in your todo.txt file:
 
     tt in my-project
-    tt out "Frobnicated the macguffin"
+    tt out Frobnicated the macguffin
 
 Comments after `tt in [project]` and `tt out` are optional.
 
@@ -92,19 +98,45 @@ the `tt in` style when you clock into a task and aren't sure when you'll
 stop, and the goal datapoint style when you're planning time blocking or
 entering work hours done after the fact.
 
-## Time blocking
+## Prospective clocking
 
-You can plan your [future time
+You can adjust the clock times with command-line parameters.
+
+    tt in --at 07:00 project         # Clock in at precise time
+    tt in --at "15 min ago" project  # Set the clock in earlier
+    tt in --in 15min project         # Clock in in the future
+    tt in --at boot project          # Clock in when your computer started up
+
+You can add breaks
+
+    tt break --for 30min lunch
+
+This is equivalent to doing
+
+    tt out lunch
+    tt in --in 30min [whatever your current project was]
+
+Clocking out supports similar modifiers as in.
+
+You can also give the clock out the total amount of work you want to clock
+today. It will then tell you when you can stop working
+
+    tt out --after 7.5h
+
+You also can plan your [future time
 use](http://calnewport.com/blog/2013/12/21/deep-habits-the-importance-of-planning-every-minute-of-your-work-day/)
-with open todo items that have both date and time and have a duration unit.
+by writing prospective clock entries in your todo.txt. Instead of the verbose
+clock in / clock out entry pairs, you can just write a single entry with date,
+time of day and time duration unit. This will be treated as equivalent to the
+corresponding clock in / clock out pair.
 
-    2018-01-10 09:00 block-project 2 h  -- Plan to work on block-project for two hours
-    2018-02-10 12:00 lunch-break 30 min  -- Time in minutes
+    x 2018-01-10 09:00 block-project 2 h  -- Plan to work on block-project for two hours
+    x 2018-02-10 12:00 lunch-break 30 min  -- Time in minutes
 
-An ongoing planned session will show up in `tt current`, but unless you mark
-them up with the `x`, they won't show up in your log of completed work. The
-assumption is that the plan is expected to change and you only mark the lines
-done when you have completed that planned work block.
+These will then show up in your tt current display.
+
+If your plans change and you don't end up doing the planned tasks, it's up to
+you to remember to edit your log file.
 
 ## Goal tracking
 
@@ -157,6 +189,20 @@ You can view ongoing goals and recently completed ones with
 
 This will list your ongoing goals and whether you're ahead or behind your
 expected schedule of steadily completing them.
+
+## Different todo.txt locations
+
+The default location for `todo.txt` and `done.txt` is in the root of your home
+directory. You can use the `--prefix` command-line option to specify a
+different prefix.
+
+    tt --prefix ~/dayjob in dayjob Show up at work, remembered to enter the prefix
+
+If you have a subproject you use frequently, you can make a shell alias for
+tt:
+
+    alias wtt="tt --prefix ~/dayjob"
+    wtt in dayjob Show up at work with less typing this time
 
 ## Examples
 
