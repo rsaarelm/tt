@@ -23,24 +23,24 @@ main = hspec $ do
       `shouldBe` 52
     it "fails a goal after a day of falling below the target line" $
       failureTime simpleGoal
-      `shouldBe` LocalTime (fromGregorian 2018 1 2) midnight
+      `shouldBe` LocalTime (fromGregorian 2018 1 3) midnight
     it "fails a sloped goal after a day of falling below the target line" $
       failureTime (initGoal (fromGregorian 2018 1 1) 999 Nothing)
-      `shouldBe` LocalTime (fromGregorian 2018 1 2) midnight
+      `shouldBe` LocalTime (fromGregorian 2018 1 3) midnight
     it "gives you a week of extra time after goal failure" $
       failureTime (simpleGoal `updateGoalClock` ld 2018 1 4)
-      `shouldBe` LocalTime (fromGregorian 2018 1 9) midnight
+      `shouldBe` LocalTime (fromGregorian 2018 1 10) midnight
     it "works for negative slopes" $
       failureTime (negativeGoal `updateGoalClock` ld 2018 1 4)
-      `shouldBe` LocalTime (fromGregorian 2018 1 9) midnight
+      `shouldBe` LocalTime (fromGregorian 2018 1 10) midnight
     it "handles generating multiple failures at once" $
-      failureTime (simpleGoal `updateGoalClock` ld 2018 1 30)
-      `shouldBe` LocalTime (fromGregorian 2018 2 6) midnight
+      failureTime (simpleGoal `updateGoalClock` ld 2018 1 31)
+      `shouldBe` LocalTime (fromGregorian 2018 2 7) midnight
     it "counts multiple failures correctly" $
-      failureCount (simpleGoal `updateGoalClock` ld 2018 1 30)
+      failureCount (simpleGoal `updateGoalClock` ld 2018 1 31)
       `shouldBe` 5
     it "counts multiple failures for negative goal correctly" $
-      failureCount (negativeGoal `updateGoalClock` ld 2018 1 30)
+      failureCount (negativeGoal `updateGoalClock` ld 2018 1 31)
       `shouldBe` 5
     it "accepts random units for unitless goal" $
       goalValue (simpleGoal `updateGoal`
