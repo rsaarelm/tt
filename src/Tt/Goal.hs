@@ -31,7 +31,7 @@ activeGoals :: [Entry] -> [(Project, Goal)]
 activeGoals = Map.toList . foldl updateState Map.empty
 
 initGoal :: Day -> Rational -> Maybe Unit -> Goal
-initGoal begin slope unit = Goal slope unit mempty 0 b 0 b
+initGoal begin slope unit = Goal slope unit mempty (- slope) b 0 b
   where b = fromIntegral (toModifiedJulianDay begin)
 
 updateState :: ActiveGoals -> Entry -> ActiveGoals
