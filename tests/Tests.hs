@@ -151,6 +151,10 @@ main = hspec $ do
       "x 2018-02-10 11:34 job 2 h"
       `shouldParseAsSession`
       ("job", Session (ldt 2018 02 10 11 34 0) (Add 7200) (Just Duration))
+    it "parses mixed unit duration" $
+      "x 2018-02-10 11:34 job 2 h 30 min"
+      `shouldParseAsSession`
+      ("job", Session (ldt 2018 02 10 11 34 0) (Add 9000) (Just Duration))
 
     it "parses simple goal" $
       "x 2018-02-10 GOAL floss 7" `shouldParseEntry`
@@ -171,6 +175,10 @@ main = hspec $ do
         StartGoal (d 2018 2 10) "read" 3600 (Just Duration)
     it "parses a goal with time units (minutes)" $
       "x 2018-02-10 GOAL flight-training 210 min"
+      `shouldParseEntry`
+      StartGoal (d 2018 2 10) "flight-training" 1800 (Just Duration)
+    it "parses a goal with mixed time units " $
+      "x 2018-02-10 GOAL flight-training 3 h 30 min"
       `shouldParseEntry`
       StartGoal (d 2018 2 10) "flight-training" 1800 (Just Duration)
     it "parses dropping a goal" $

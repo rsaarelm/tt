@@ -68,17 +68,22 @@ entryParser =
       <$> (   buildGoal
           <$> goalPrefix
           <*> tok projectName
-          <*> tok nonzero
-          <*> optionMaybe (tok symbol)
+          <*> (try mixedTimeGoalTarget <|> goalTarget)
           )
    where
     goalPrefix = tok (string "x") *> tok date <* tok (string "GOAL")
-    buildGoal :: Day -> String -> Rational -> Maybe String -> Entry
-    buildGoal begin project slope inputUnit = StartGoal begin
-                                                        project
-                                                        (slope * multiplier / 7)
-                                                        unit
-      where (multiplier, unit) = convertUnit inputUnit
+    buildGoal :: Day -> String -> (Rational, Maybe Unit) -> Entry
+    buildGoal begin project (slope, unit) = StartGoal begin
+                                                      project
+                                                      (slope / 7)
+                                                      unit
+    mixedTimeGoalTarget = f <$> tok nonzero <* string "h " <*> tok1 number <* string "min"
+     where
+      f h m = (h * 3600 + m * 60, Just Duration)
+    goalTarget = f <$> tok nonzero <*> optionMaybe (tok symbol)
+     where
+      f x u = (x * multiplier, u')
+       where (multiplier, u') = convertUnit u
 
   endGoal = CleanEntry <$> (EndGoal <$> endGoalPrefix <*> tok projectName)
    where
@@ -90,7 +95,7 @@ entryParser =
           <$> donePrefix
           <*> optionMaybe (tok zonedTime)
           <*> tok projectName
-          <*> (try quantity <|> return (Add 1, Nothing))
+          <*> (try mixedTimeQuantity <|> try quantity <|> return (Add 1, Nothing))
           )
    where
     buildSession d time project (amount, inputUnit) = SessionEntry
@@ -106,14 +111,19 @@ quantity = (,) <$> tok1 amount <*> optionMaybe (tok symbol)
  where
   amount = ((\x -> Set x x) <$> (string "= " *> number)) <|> (Add <$> number)
 
+-- | Parse hours and minutes mixed quantity
+mixedTimeQuantity :: Parser (Value Rational, Maybe String)
+mixedTimeQuantity = mergeHMin <$>
+  tok1 number <* string "h " <*> tok1 number <* string "min"
+ where
+  mergeHMin h m = (Add (60 * h + m), Just "min")
+
 donePrefix :: Parser Day
 donePrefix = tok (string "x") *> tok date
 
 convertUnit :: Maybe String -> (Rational, Maybe Unit)
 convertUnit (Just "min"    ) = (60, Just Duration)
-convertUnit (Just "minutes") = (60, Just Duration)
 convertUnit (Just "h"      ) = (60 * 60, Just Duration)
-convertUnit (Just "hours"  ) = (60 * 60, Just Duration)
 convertUnit (Just "days"   ) = (60 * 60 * 24, Just Duration)
 convertUnit x                = (1, Named <$> x)
 
