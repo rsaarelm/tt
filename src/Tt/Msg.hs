@@ -57,6 +57,14 @@ date = formatTime defaultTimeLocale "%Y-%m-%d"
 zonedTimeOfDay :: ZonedTime -> String
 zonedTimeOfDay = formatTime defaultTimeLocale "%H:%M:%S%z"
 
+-- | Print text in bright yellow
+highlightUrgent :: String -> String
+highlightUrgent = printf "\ESC[33;1m%s\ESC[0m"
+
+-- | Print text in bright red
+highlightCritical :: String -> String
+highlightCritical = printf "\ESC[31;1m%s\ESC[0m"
+
 -- | Deadline date message
 deadline :: ZonedTime -> LocalTime -> String
 deadline now day =
@@ -64,6 +72,6 @@ deadline now day =
  where
   day' = (-1) `addDays` localDay day
   ndays = day' `diffDays` localDay (zonedTimeToLocalTime now)
-  days 0 = "(today)"
-  days 1 = "(tomorrow)"
+  days 0 = highlightCritical "(today)"
+  days 1 = highlightUrgent "(tomorrow)"
   days n = printf "(in %d days)" n
