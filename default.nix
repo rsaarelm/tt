@@ -34,5 +34,6 @@ in
       pkgs.cabal-install
       pkgs.hlint
       pkgs.haskellPackages.brittany
+      pkgs.haskellPackages.hspec
     ];
   })
