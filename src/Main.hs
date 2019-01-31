@@ -144,8 +144,12 @@ projectBreak timeExpr comment = do
   onBreak <- onBreak
   when (isJust onBreak) $ liftIO $ die "Already on break."
   current <- getCurrentProject
-  startTime <- asks now
-  endTime <- adjustTime (Just timeExpr)
+  t1      <- asks now
+  t2      <- adjustTime (Just timeExpr)
+  let (startTime, endTime) =
+        if (zonedTimeToLocalTime t1 < zonedTimeToLocalTime t2)
+          then (t1, t2)
+          else (t2, t1)
   case current of
     Just project -> do
       append $ Msg.clockOut startTime comment
