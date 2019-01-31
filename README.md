@@ -69,7 +69,7 @@ by [hledger](http://hledger.org/) with the `timeclock` command.
 
 You can then use hledger to analyze your hours and generate reports:
 
-    tt timeclock | hledger -f - balance
+    tt timeclock | hledger -f - balance -p "daily this week"
 
 Use tt to show the name of the currently clocked project and the hours clocked
 on it today:
