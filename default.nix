@@ -31,6 +31,8 @@ in
   pkg.overrideAttrs(attr: {
     # Shell stuff
     buildInputs = [
+      pkgs.gmp
+
       pkgs.cabal-install
       pkgs.hlint
       pkgs.haskellPackages.brittany
