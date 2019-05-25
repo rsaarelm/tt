@@ -6,6 +6,7 @@ module Tt.Goal (
   updateGoal,
   updateGoalClock,
   failureTime,
+  goalMinimum,
   goalTarget
 ) where
 
@@ -96,6 +97,14 @@ failureDay goal = start + fromIntegral (ceiling ((y + a - b) / a))
   a     = goalSlope goal
   b     = goalOffset goal
   y     = goalChange goal
+
+-- | The value needed today to not fail the goal
+goalMinimum :: Goal -> Rational
+goalMinimum goal = a * x + b
+ where
+  x = goalCurrentTime goal - goalStartTime goal
+  a = goalSlope goal
+  b = goalOffset goal + goalBase goal - goalSlope goal
 
 -- | The value the goal should have now to be exactly on the expected slope
 goalTarget :: Goal -> Rational

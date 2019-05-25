@@ -259,7 +259,7 @@ goals = do
  where
   showGoals goals t = do
     liftIO $ printf
-      "goal               current (target)   deadline                 failures\n"
+      "goal               current (minimum)  deadline                 failures\n"
     liftIO $ printf
       "------------------|------------------|------------------------|--------\n"
     mapM_ (printGoal t) goals
@@ -271,7 +271,7 @@ printGoal now (p, g) = liftIO $ printf
   ( printf "%s %s %s"
            (showUnit (goalValue g) (goalUnit g))
            (if goalSlope g > 0 then "↑" else "↓")
-           (showUnit (fromIntegral $ ceiling (goalTarget g')) (goalUnit g')) :: String
+           (showUnit (fromIntegral $ ceiling (goalMinimum g')) (goalUnit g')) :: String
   )
   (Msg.deadline now (failureTime g))
   (if failureCount g > 0 then show (failureCount g) else "")
