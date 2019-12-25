@@ -271,7 +271,7 @@ printGoal now (p, g) = liftIO $ printf
   ( printf "%s %s %s"
            (showUnit (goalValue g) (goalUnit g))
            (if goalSlope g > 0 then "↑" else "↓")
-           (showUnit (fromIntegral $ ceiling (goalMinimum g')) (goalUnit g')) :: String
+           (showUnit (fromIntegral $ (if goalSlope g > 0 then ceiling else floor) (goalMinimum g')) (goalUnit g')) :: String
   )
   (Msg.deadline now (failureTime g))
   (if failureCount g > 0 then show (failureCount g) else "")
