@@ -133,7 +133,7 @@ parseCmd =
 
   fromOpt = (option $ (++ " until now") <$> str)
     (long "from" <> metavar "TIME_EXPR" <> help
-      "Adjust to have happeneng from [TIME_EXPR] until now"
+      "Adjust to have happened from [TIME_EXPR] until now"
     )
 
   maybeWords []       = Nothing
