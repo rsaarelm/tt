@@ -195,6 +195,28 @@ You can view ongoing goals and recently completed ones with
 This will list your ongoing goals and whether you're ahead or behind your
 expected schedule of steadily completing them.
 
+## Stochastic time tracking
+
+Based on http://messymatters.com/tagtime/
+
+Stochastic item format, average sampling duration in minutes, asterisk after
+the time
+
+    x 2020-01-10 20:08:03+0200 project-name 45 min * [optional comment]
+
+Get seconds to wait until next random ping:
+
+    tt next-ping [average ping duration in minutes]
+
+Use shell scripting to run notification daemon (with 45 minute average
+interval in example):
+
+    while [ true ]; do sleep `tt next-ping 45`; notify-send ping; done
+
+After receiving ping, log what you were doing
+
+    tt s 45 project-you-were-working-on Any extra comments on what you were doing
+
 ## Different todo.txt locations
 
 The default location for `todo.txt` and `done.txt` is in the root of your home

@@ -71,6 +71,9 @@ updateGoal goal session = if unitsMatch goal session
     -- abandon those.
     (Nothing       , Just Duration ) -> False
     (Just Duration , Just Duration ) -> True
+    (Just StochasticDuration , Just Duration ) -> True
+    (Just StochasticDuration , Just StochasticDuration ) -> True
+    (Just Duration , Just StochasticDuration ) -> True
     (Nothing       , _             ) -> True
     _                                -> False
 

@@ -7,6 +7,7 @@ import           Data.List
 import           Data.Maybe
 import           Data.Semigroup                           ( (<>) )
 import           Data.Time
+import           Data.Time.Clock.POSIX
 import           GHC.Exts
 import           Numeric.Interval.NonEmpty
 import           Options.Applicative
@@ -20,6 +21,7 @@ import           Text.Printf
 import           Tt.Entry
 import           Tt.Goal
 import qualified Tt.Msg                        as Msg
+import           Tt.Ping
 import           Tt.Parser
 import           Tt.Util
 import           Tt.Work
@@ -63,14 +65,19 @@ data Ctx = Ctx {
 type ContextIO a = ReaderT Ctx IO a
 
 runCmd :: Cmd -> ContextIO ()
-runCmd (In at project comment) = clockIn at project comment
-runCmd (Out   project comment) = clockOut project comment
-runCmd (Break for     comment) = projectBreak for comment
-runCmd (Todo msg             ) = todo msg
-runCmd (Done timestamp msg   ) = done timestamp msg
-runCmd Timeclock               = timeclock
-runCmd Current                 = current
-runCmd Goals                   = goals
+runCmd (In at project comment)        = clockIn at project comment
+runCmd (Out   project comment)        = clockOut project comment
+runCmd (Break for     comment)        = projectBreak for comment
+runCmd (Todo msg             )        = todo msg
+runCmd (Done timestamp msg   )        = done timestamp msg
+runCmd Timeclock                      = timeclock
+runCmd Current                        = current
+runCmd Goals                          = goals
+runCmd (NextPing intervalMinutes now) = pingDelay
+  (secondsToNominalDiffTime $ fromIntegral $ intervalMinutes * 60)
+  (fmap (posixSecondsToUTCTime . secondsToNominalDiffTime . fromIntegral) now)
+runCmd (LogPings intervalMinutes) =
+  inquireGaps (secondsToNominalDiffTime $ fromIntegral $ intervalMinutes * 60)
 
 adjustTime :: Maybe String -> ContextIO ZonedTime
 adjustTime expr = case expr of
@@ -316,3 +323,47 @@ today :: ContextIO (Interval LocalTime)
 today = do
   t <- asks (zonedTimeToLocalTime . now)
   return $ t { localTimeOfDay = midnight } ... t
+
+last24h :: ContextIO (Interval UTCTime)
+last24h = do
+  t <- asks (zonedTimeToUTC . now)
+  return $ addUTCTime (secondsToNominalDiffTime (fromIntegral (-86400))) t ... t
+
+recentPings :: NominalDiffTime -> ContextIO [ZonedTime]
+recentPings avgDuration = do
+  interval <- last24h
+  zone     <- asks (zonedTimeZone . now)
+  return $ map (utcToZonedTime zone) $ pingTimes avgDuration interval
+
+pingIsLogged :: Db -> NominalDiffTime -> ZonedTime -> Bool
+pingIsLogged db avgDuration t = any (logsPing avgDuration t) db
+
+pingDelay :: NominalDiffTime -> (Maybe UTCTime) -> ContextIO ()
+pingDelay avgDuration maybeT = do
+  t <- zonedTimeToUTC <$> asks now
+  let now'     = fromMaybe t maybeT -- Either parameter or current time
+  let pingTime = nextPing avgDuration now'
+  let diff     = pingTime `diffUTCTime` now'
+  liftIO $ (printf "%d\n" ((ceiling diff) :: Integer))
+
+inquireGaps :: NominalDiffTime -> ContextIO ()
+inquireGaps avgDuration = do
+  interval <- last24h
+  zone     <- asks (zonedTimeZone . now)
+  entries  <- asks db
+  let times  = map (utcToZonedTime zone) $ pingTimes avgDuration interval
+  let times' = filter (not . pingIsLogged entries avgDuration) times
+  --liftIO $ (print times')
+  processGaps avgDuration Nothing times'
+
+processGaps :: NominalDiffTime -> Maybe String -> [ZonedTime] -> ContextIO ()
+processGaps avgDuration prev (t : ts) = do
+  liftIO $ putStrLn (Msg.stochasticPoint t (fromMaybe "" prev) avgDuration "")
+  input <- liftIO getLine
+  let (p : c) = case (prev, input) of
+        (Nothing, "") -> error "no project"
+        (Just a , "") -> [a]
+        (_      , b ) -> words b
+  append (Msg.stochasticPoint t p avgDuration (unwords c))
+  processGaps avgDuration (Just p) ts
+processGaps _ _ [] = return ()

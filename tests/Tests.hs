@@ -155,6 +155,14 @@ main = hspec $ do
       "x 2018-02-10 11:34 job 2 h 30 min"
       `shouldParseAsSession`
       ("job", Session (ldt 2018 02 10 11 34 0) (Add 9000) (Just Duration))
+    it "parses stochastic time duration" $
+      "x 2018-02-10 12:34:56+0200 project 45 min *"
+      `shouldParseAsSession`
+      ("project", Session (ldt 2018 02 10 12 34 56) (Add 2700) (Just StochasticDuration))
+    it "parses stochastic time duration with comment" $
+      "x 2018-02-10 12:34:56+0200 project 45 min * -- Things and stuff"
+      `shouldParseAsSession`
+      ("project", Session (ldt 2018 02 10 12 34 56) (Add 2700) (Just StochasticDuration))
 
     it "parses simple goal" $
       "x 2018-02-10 GOAL floss 7" `shouldParseEntry`

@@ -9,11 +9,14 @@ module Tt.Util (
   addLocalTime,
   diffLocalTime,
   secondsToNominalDiffTime,
+  nominalDiffTimeToSeconds,
   intervalDuration,
-  AsTimeInterval(asTimeInterval)
+  AsTimeInterval(asTimeInterval),
+  strip
 ) where
 
 import           Data.Fixed
+import           Data.Char
 import           Data.List
 import           Data.Ratio
 import           Data.Time
@@ -89,8 +92,23 @@ diffLocalTime a b = diffUTCTime (localTimeToUTC utc a) (localTimeToUTC utc b)
 secondsToNominalDiffTime :: Pico -> NominalDiffTime
 secondsToNominalDiffTime = unsafeCoerce
 
+-- XXX: More time 1.9 copy-paste
+nominalDiffTimeToSeconds :: NominalDiffTime -> Pico
+nominalDiffTimeToSeconds = unsafeCoerce
+
 intervalDuration :: Interval LocalTime -> NominalDiffTime
 intervalDuration i = sup i `diffLocalTime` inf i
 
 class AsTimeInterval a where
   asTimeInterval :: a -> Interval LocalTime
+
+strip :: String -> String
+strip = lstrip . rstrip
+
+lstrip :: String -> String
+lstrip []                   = []
+lstrip (c : cs) | isSpace c = lstrip cs
+lstrip s                    = s
+
+rstrip :: String -> String
+rstrip = reverse . lstrip . reverse

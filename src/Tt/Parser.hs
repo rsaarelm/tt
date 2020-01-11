@@ -58,7 +58,7 @@ parseEntry s = case parse entryParser "" s of
 -- | Input entry main parser
 entryParser :: Parser RawEntry
 entryParser =
-  try clockIn <|> try clockOut <|> try goal <|> try endGoal <|> try session
+  try clockIn <|> try clockOut <|> try goal <|> try endGoal <|> try stochasticSession <|> try session
  where
   clockIn = ClockIn <$> donePrefix <*> tok zonedTime <*  tok (string "s") <*> tok projectName
   clockOut = ClockOut <$> donePrefix <*> tok zonedTime <* tok (string "e")
@@ -105,6 +105,21 @@ entryParser =
       (multiplier, unit) = convertUnit inputUnit
       localtime          = LocalTime d (maybe midday fst time)
 
+  stochasticSession =
+    CleanEntry
+      <$> (   buildSession
+          <$> donePrefix
+          <*> optionMaybe (tok zonedTime)
+          <*> tok projectName
+          <*> stochasticTime
+          )
+   where
+    buildSession d time project minutes = SessionEntry
+      project
+      (Session localtime (Add (60 * minutes)) (Just StochasticDuration))
+     where
+      localtime          = LocalTime d (maybe midday fst time)
+
 -- | Parse a relative or absolute quantity with an optional unit.
 quantity :: Parser (Value Rational, Maybe String)
 quantity = (,) <$> tok1 amount <*> optionMaybe (tok symbol)
@@ -117,6 +132,10 @@ mixedTimeQuantity = mergeHMin <$>
   tok1 number <* string "h " <*> tok1 number <* string "min"
  where
   mergeHMin h m = (Add (60 * h + m), Just "min")
+
+-- | Parse stochastic time session, always minutes
+stochasticTime :: Parser Rational
+stochasticTime = tok1 number <* (string "min *")
 
 donePrefix :: Parser Day
 donePrefix = tok (string "x") *> tok date

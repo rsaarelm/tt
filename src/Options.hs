@@ -1,12 +1,13 @@
 module Options
   ( Options(prefix, cmd)
-  , Cmd(In, Out, Break, Todo, Done, Goals, Current, Timeclock)
+  , Cmd(In, Out, Break, Todo, Done, Goals, Current, NextPing, LogPings, Timeclock)
   , options
   )
 where
 
 import           Data.Maybe
 import           Data.Semigroup                           ( (<>) )
+import           Data.Int
 import           Options.Applicative
 
 data Options = Options
@@ -37,6 +38,8 @@ data Cmd
     }
   | Goals
   | Current
+  | NextPing { intervalMinutes :: Int, now :: Maybe Int64 }
+  | LogPings { intervalMinutes :: Int }
   | Timeclock
   deriving Show
 
@@ -105,6 +108,22 @@ parseCmd =
              <*> (unwords <$> many (argument str (metavar "message")))
              )
          $ progDesc "Add a done item from the command line"
+         )
+
+    <> command
+         "next-ping"
+         ( info
+             (   NextPing
+             <$> argument auto (metavar "interval-minutes")
+             <*> optional (argument auto (metavar "posix-time-now"))
+             )
+         $ progDesc
+             "Give time in seconds to sleep until next stochastic time tracking ping"
+         )
+    <> command
+         "s"
+         ( info (LogPings <$> argument auto (metavar "interval-minutes"))
+         $ progDesc "Interactively log recent stochastic pings"
          )
 
     <> command

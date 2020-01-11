@@ -4,9 +4,12 @@ module Tt.Entry (
   Entry(SessionEntry, StartGoal, EndGoal),
   RawEntry(ClockIn, ClockOut, CleanEntry),
   entrySortKey,
+  logsPing,
+  entryProject,
   Project,
   Value(Add, Set),
-  Unit(Duration, Named),
+  Unit(StochasticDuration, Duration, Named),
+  printDuration,
   showUnit,
   sessionHasTimeOfDay,
   Session(Session, sessionTime, sessionAmount, sessionUnit),
@@ -46,6 +49,20 @@ entrySortKey (CleanEntry (SessionEntry _ s)) = (inf $ asTimeInterval s, 0)
 entrySortKey (CleanEntry (StartGoal d _ _ _)) = (LocalTime d midnight, 0)
 entrySortKey (CleanEntry (EndGoal d _)) = (LocalTime (addDays 1 d) midnight, 0)
 
+-- | Does entry log a specific stochastic ping?
+logsPing :: NominalDiffTime -> ZonedTime -> RawEntry -> Bool
+logsPing avgDuration t (CleanEntry (SessionEntry _ (Session t' (Add secs) (Just StochasticDuration))))
+  = secs
+    == ((fromIntegral $ truncate avgDuration) :: Rational)
+    && t'
+    == zonedTimeToLocalTime t
+logsPing _ _ _ = False
+
+-- | Return project name from a clean session entry
+entryProject :: RawEntry -> Maybe String
+entryProject (CleanEntry (SessionEntry p _)) = Just p
+entryProject _ = Nothing
+
 -- | Identifier for a project that can be worked on
 type Project = String
 
@@ -68,13 +85,18 @@ instance Num a => Monoid (Value a) where
   mempty = Add 0
 
 -- | Unit of the work done for the project
-data Unit = Duration | Named String deriving (Eq, Show)
+data Unit = StochasticDuration | Duration | Named String deriving (Eq, Show)
+
+
+printDuration :: Rational -> String
+printDuration amount | amount < 3600 =
+  printf "%d min" (truncate (amount / 60) :: Integer)
+printDuration amount =
+  printf "%s h" (showRat (amount / 3600))
 
 showUnit :: Rational -> Maybe Unit -> String
-showUnit amount (Just Duration) | amount < 3600 =
-  printf "%d min" (truncate (amount / 60) :: Integer)
-showUnit amount (Just Duration) =
-  printf "%s h" (showRat (amount / 3600))
+showUnit amount (Just Duration) = printDuration amount
+showUnit amount (Just StochasticDuration) = printDuration amount
 showUnit amount (Just (Named u)) = unwords [showRat amount, u]
 showUnit amount Nothing          = showRat amount
 

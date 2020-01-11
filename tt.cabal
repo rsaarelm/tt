@@ -1,5 +1,5 @@
 name:                tt
-version:             0.2.0.0
+version:             0.2.1.0
 synopsis:            Command line time tracking and todo tool
 -- description:
 homepage:            https://github.com/rsaarelm/tt
@@ -21,6 +21,7 @@ library
                        Tt.Parser
                        Tt.Msg
                        Tt.Goal
+                       Tt.Ping
                        Tt.Work
   default-language:    Haskell2010
   build-depends:       base,
@@ -42,6 +43,7 @@ executable tt
                        Tt.Parser
                        Tt.Msg
                        Tt.Goal
+                       Tt.Ping
                        Tt.Work
   build-depends:       base,
                        containers,
