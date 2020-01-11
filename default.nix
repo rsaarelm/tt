@@ -36,8 +36,7 @@ in
       pkgs.cabal-install
       pkgs.hlint
 
-      # FIXME https://github.com/NixOS/nixpkgs/issues/54534
-      # pkgs.haskellPackages.brittany
+      pkgs.haskellPackages.brittany
 
       pkgs.haskellPackages.hspec
     ];
