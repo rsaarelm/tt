@@ -5,19 +5,21 @@ import           Control.Monad.Reader
 import           Data.Foldable
 import           Data.List
 import           Data.Maybe
-import           Data.Semigroup            ((<>))
+import           Data.Semigroup                           ( (<>) )
 import           Data.Time
 import           GHC.Exts
 import           Numeric.Interval.NonEmpty
 import           Options.Applicative
-import           System.Directory (doesFileExist, getHomeDirectory)
+import           System.Directory                         ( doesFileExist
+                                                          , getHomeDirectory
+                                                          )
 import           System.Exit
-import           System.FilePath  (joinPath)
+import           System.FilePath                          ( joinPath )
 import           System.IO
 import           Text.Printf
 import           Tt.Entry
 import           Tt.Goal
-import qualified Tt.Msg                    as Msg
+import qualified Tt.Msg                        as Msg
 import           Tt.Parser
 import           Tt.Util
 import           Tt.Work
@@ -34,19 +36,21 @@ main = do
   -- The cleaner approach would be to just make the prefix option a Maybe
   -- String and have the branch for Nothing, but the string value is a bit
   -- more informative if it shows up in generated CLI options documentation.
-  prefix <- case prefix options of
-               "~/" -> getHomeDirectory
-               x -> return x
-  db <- sortOn entrySortKey . join <$> traverse (slurp prefix) ["done.txt", "todo.txt"]
+  prefix  <- case prefix options of
+    "~/" -> getHomeDirectory
+    x    -> return x
+  db <- sortOn entrySortKey . join <$> traverse (slurp prefix)
+                                                ["done.txt", "todo.txt"]
   now <- getZonedTime
   runReaderT (runCmd $ cmd options) (Ctx now db (joinPath [prefix, "todo.txt"]))
  where
   -- Read file into entries
   slurp prefix file = do
-   let path = joinPath [prefix, file]
-   fileExists <- doesFileExist path
-   if fileExists then mapMaybe parseEntry . lines <$> readFile path
-                 else return []
+    let path = joinPath [prefix, file]
+    fileExists <- doesFileExist path
+    if fileExists
+      then mapMaybe parseEntry . lines <$> readFile path
+      else return []
 
 type Db = [RawEntry]
 
@@ -60,49 +64,42 @@ type ContextIO a = ReaderT Ctx IO a
 
 runCmd :: Cmd -> ContextIO ()
 runCmd (In at project comment) = clockIn at project comment
-runCmd (Out project comment) = clockOut project comment
-runCmd (Break for comment) = projectBreak for comment
-runCmd (Todo msg) = todo msg
-runCmd (Done timestamp msg) = done timestamp msg
-runCmd Timeclock = timeclock
-runCmd Current = current
-runCmd Goals = goals
+runCmd (Out   project comment) = clockOut project comment
+runCmd (Break for     comment) = projectBreak for comment
+runCmd (Todo msg             ) = todo msg
+runCmd (Done timestamp msg   ) = done timestamp msg
+runCmd Timeclock               = timeclock
+runCmd Current                 = current
+runCmd Goals                   = goals
 
 adjustTime :: Maybe String -> ContextIO ZonedTime
-adjustTime expr =
-  case expr of
-    Nothing -> asks now
-    Just e -> handleTimeExpr e
+adjustTime expr = case expr of
+  Nothing -> asks now
+  Just e  -> handleTimeExpr e
 
 handleTimeExpr :: String -> ContextIO ZonedTime
 handleTimeExpr expr = do
-  t <- asks now
+  t     <- asks now
   start <- currentProjectStart <$> loadUnsealedWork
   -- If the current work session starts later than current time, when figuring
   -- the end time for after we must use this as the start time.
-  let lt = zonedTimeToLocalTime t
+  let lt             = zonedTimeToLocalTime t
   let afterStartTime = fromMaybe lt start `max` lt
 
   case parseTimeExpr expr of
     Just (AbsoluteTime timeOfDay) ->
-      return $ t {
-        zonedTimeToLocalTime = lt {
-          localTimeOfDay = timeOfDay
-        }
-      }
-    Just (RelativeTime diff) -> return $ t {
-        zonedTimeToLocalTime = diff `addLocalTime` lt
-     }
+      return $ t { zonedTimeToLocalTime = lt { localTimeOfDay = timeOfDay } }
+    Just (RelativeTime diff) ->
+      return $ t { zonedTimeToLocalTime = diff `addLocalTime` lt }
     Just (AfterTotalTime diff) -> do
       workSoFar <- currentProjectToday
-      return $ t {
-        zonedTimeToLocalTime = (diff - workSoFar) `addLocalTime` afterStartTime
-      }
+      return $ t
+        { zonedTimeToLocalTime = (diff - workSoFar)
+                                   `addLocalTime` afterStartTime
+        }
     Just SinceSystemStartup -> do
       uptime <- liftIO systemUptime
-      return $ t {
-        zonedTimeToLocalTime = negate uptime `addLocalTime` lt
-      }
+      return $ t { zonedTimeToLocalTime = negate uptime `addLocalTime` lt }
     Nothing -> liftIO $ die (printf "Couldn't parse time expression '%s'" expr)
 
 systemUptime :: IO NominalDiffTime
@@ -116,7 +113,7 @@ clockIn :: Maybe String -> String -> Maybe String -> ContextIO ()
 clockIn timeExpr project comment = do
   checkBreak
   checkPlanned
-  t <- adjustTime timeExpr
+  t       <- adjustTime timeExpr
   current <- getCurrentProject
   when (isJust current) (clockOut timeExpr Nothing)
   let msg = Msg.clockIn t project comment
@@ -126,8 +123,8 @@ clockIn timeExpr project comment = do
 clockOut :: Maybe String -> Maybe String -> ContextIO ()
 clockOut timeExpr comment = do
   checkPlanned
-  t <- adjustTime timeExpr
-  current <- getCurrentProject
+  t         <- adjustTime timeExpr
+  current   <- getCurrentProject
   startTime <- currentProjectStart <$> loadUnsealedWork
   -- TODO: See that checkout is later than start...
   case (current, startTime) of
@@ -155,21 +152,22 @@ projectBreak timeExpr comment = do
       append $ Msg.clockOut startTime comment
       append $ Msg.clockIn endTime project Nothing
       liftIO $ printf "On break from %s until %s.\n"
-        project
-        (formatTime defaultTimeLocale "%H:%M:%S" endTime)
+                      project
+                      (formatTime defaultTimeLocale "%H:%M:%S" endTime)
     Nothing -> liftIO $ die "Not clocked in, nothing to take break from."
 
 checkBreak :: ContextIO ()
 checkBreak = do
   onBreak <- onBreak
-  when (isJust onBreak) $ liftIO $ die "On scheduled break, clocking in not allowed."
+  when (isJust onBreak) $ liftIO $ die
+    "On scheduled break, clocking in not allowed."
 
 checkPlanned :: ContextIO ()
 checkPlanned = do
-  onBreak <- onBreak
+  onBreak   <- onBreak
   inPlanned <- inPlanned
-  when (isJust inPlanned && isNothing onBreak) $
-    liftIO $ die "In pre-planned session, clocking in or out not allowed."
+  when (isJust inPlanned && isNothing onBreak) $ liftIO $ die
+    "In pre-planned session, clocking in or out not allowed."
 
 getCurrentProject :: ContextIO (Maybe String)
 getCurrentProject = currentProject <$> loadWork
@@ -183,16 +181,16 @@ onBreak = do
   -- XXX: This will only detect a break before an open ClockIn item, not
   -- before a closed task set in the future.
   start <- currentProjectStart <$> loadUnsealedWork
-  t <- asks (zonedTimeToLocalTime . now)
+  t     <- asks (zonedTimeToLocalTime . now)
   return $ case start of
     Nothing -> Nothing
-    Just s -> if t < s then Just s else Nothing
+    Just s  -> if t < s then Just s else Nothing
 
 -- | Return if we're in a planned work session
 inPlanned :: ContextIO (Maybe (Project, Session))
 inPlanned = do
   work <- loadWork
-  t <- asks (zonedTimeToLocalTime . now)
+  t    <- asks (zonedTimeToLocalTime . now)
   return $ plannedProject work t
 
 todo :: String -> ContextIO ()
@@ -210,11 +208,10 @@ done timestamp msg = do
   liftIO $ printf "Done task added: %s\n" entry
  where
   -- If the message starts with "^", backdate it to yesterday
-  processMsg t c@('^':cs) = puntBack t c
-  processMsg t c          = (if timestamp then Msg.doneWithTime else Msg.done)
-                            t c
-  puntBack t ('^':cs) = puntBack (yesterday t) cs
-  puntBack t s        = Msg.done t s
+  processMsg t c@('^' : cs) = puntBack t c
+  processMsg t c = (if timestamp then Msg.doneWithTime else Msg.done) t c
+  puntBack t ('^' : cs) = puntBack (yesterday t) cs
+  puntBack t s          = Msg.done t s
 
 timeclock :: ContextIO ()
 timeclock = do
@@ -231,22 +228,22 @@ current = do
   case (break, currentProject work) of
     (Just until, Just project) -> do
       todaysTime <- currentProjectToday
-      liftIO $ printf
-        "%s %s, on break until %s\n" project (showHours todaysTime) (ftime until)
+      liftIO $ printf "%s %s, on break until %s\n"
+                      project
+                      (showHours todaysTime)
+                      (ftime until)
     (_, Just project) -> do
       todaysTime <- currentProjectToday
       liftIO $ printf "%s %s\n" project (showHours todaysTime)
     (_, Nothing) -> case plannedProject work (zonedTimeToLocalTime t) of
       Just (p, s) -> liftIO $ printf "%s until %s\n" p endTime
-       where
-        endTime = ftime $ sup (asTimeInterval s)
+        where endTime = ftime $ sup (asTimeInterval s)
       Nothing -> return ()
-   where
-    ftime = formatTime defaultTimeLocale "%H:%M"
+  where ftime = formatTime defaultTimeLocale "%H:%M"
 
 currentProjectToday :: ContextIO NominalDiffTime
 currentProjectToday = do
-  work <- loadWork
+  work  <- loadWork
   today <- today
   return $ duration $ onCurrentProject work `during` today
 
@@ -258,20 +255,28 @@ goals = do
   unless (null goals) $ showGoals goals t
  where
   showGoals goals t = do
-    liftIO $ printf
-      "goal               current (minimum)  deadline                 failures\n"
-    liftIO $ printf
-      "------------------|------------------|------------------------|--------\n"
+    liftIO
+      $ printf
+          "goal               current (minimum)  deadline                 failures\n"
+    liftIO
+      $ printf
+          "------------------|------------------|------------------------|--------\n"
     mapM_ (printGoal t) goals
 
 printGoal :: ZonedTime -> (Project, Goal) -> ContextIO ()
 printGoal now (p, g) = liftIO $ printf
   "%-18s %-18s %-24s %s\n"
   p
-  ( printf "%s %s %s"
-           (showUnit (goalValue g) (goalUnit g))
-           (if goalSlope g > 0 then "↑" else "↓")
-           (showUnit (fromIntegral $ (if goalSlope g > 0 then ceiling else floor) (goalMinimum g')) (goalUnit g')) :: String
+  (printf
+    "%s %s %s"
+    (showUnit (goalValue g) (goalUnit g))
+    (if goalSlope g > 0 then "↑" else "↓")
+    (showUnit
+      ( fromIntegral
+      $ (if goalSlope g > 0 then ceiling else floor) (goalMinimum g')
+      )
+      (goalUnit g')
+    ) :: String
   )
   (Msg.deadline now (failureTime g))
   (if failureCount g > 0 then show (failureCount g) else "")
@@ -302,7 +307,7 @@ loadUnsealedWork = toWorkState <$> asks db
 loadGoals :: ContextIO [(Project, Goal)]
 loadGoals = do
   work <- loadWork
-  t  <- asks now
+  t    <- asks now
   return $ sortWith (\(_, g) -> failureTime g) $ map
     (\(p, g) -> (p, updateGoalClock g (zonedTimeToLocalTime t)))
     (activeGoals (entries work))
