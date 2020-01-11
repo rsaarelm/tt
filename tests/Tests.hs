@@ -186,31 +186,31 @@ main = hspec $ do
         EndGoal (d 2018 3 10) "floss"
 
   describe "Relative time parser" $ do
-    it "parsers boot time" $
+    it "parses boot time" $
       "boot" `timeShouldParse` SinceSystemStartup
-    it "parser absolute time" $
+    it "parses absolute time" $
       "07:15" `timeShouldParse` AbsoluteTime (TimeOfDay 7 15 0)
-    it "parser absolute time with seconds" $
+    it "parses absolute time with seconds" $
       "07:15:30" `timeShouldParse` AbsoluteTime (TimeOfDay 7 15 30)
-    it "parser absolute time without leading zero" $
+    it "parses absolute time without leading zero" $
       "7:15" `timeShouldParse` AbsoluteTime (TimeOfDay 7 15 0)
-    it "parser 24h absolute time" $
+    it "parses 24h absolute time" $
       "19:15" `timeShouldParse` AbsoluteTime (TimeOfDay 19 15 0)
-    it "parser relative time in hours" $
+    it "parses relative time in hours" $
       "in 5 h" `timeShouldParse` RelativeTime (secondsToNominalDiffTime (3600 * 5))
-    it "parser relative time without space" $
+    it "parses relative time without space" $
       "in 5h" `timeShouldParse` RelativeTime (secondsToNominalDiffTime (3600 * 5))
-    it "parser negative relative time" $
+    it "parses negative relative time" $
       "in -5 h" `timeShouldParse` RelativeTime (secondsToNominalDiffTime (3600 * (-5)))
-    it "parser fractional relative time" $
+    it "parses fractional relative time" $
       "in 5.5 h" `timeShouldParse` RelativeTime (secondsToNominalDiffTime (3600 * 5 + 1800))
-    it "parser retroactive relative time in hours" $
+    it "parses retroactive relative time in hours" $
       "5 h ago" `timeShouldParse` RelativeTime (secondsToNominalDiffTime (3600 * (-5)))
-    it "parser total time" $
+    it "parses total time" $
       "after 8 h" `timeShouldParse` AfterTotalTime (secondsToNominalDiffTime (3600 * 8))
-    it "parser relative time in minutes" $
+    it "parses relative time in minutes" $
       "in 30 min" `timeShouldParse` RelativeTime (secondsToNominalDiffTime (60 * 30))
-    it "parser relative time in minutes without space" $
+    it "parses relative time in minutes without space" $
       "in 30min" `timeShouldParse` RelativeTime (secondsToNominalDiffTime (60 * 30))
 
 -- Utility functions
