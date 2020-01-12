@@ -215,7 +215,25 @@ interval in example):
 
 After receiving ping, log what you were doing
 
-    tt s 45 project-you-were-working-on Any extra comments on what you were doing
+    tt log-ping 45 project-you-were-working-on Any extra comments on what you were doing
+
+You might want to make a short shell alias for the log-ping command with
+your preferred ping duration for efficient logging:
+
+    alias t="tt log-ping 45"
+
+If you missed multiple pings, you can use `fill-pings` to enter the ping
+timestamps in your todo.txt file for manual editing
+
+    tt fill-pings 45
+
+This emits several lines like
+
+    x 2020-01-10 20:08:03+0200 _ 45 min *
+
+to your todo.txt file. You can now edit the todo.txt file and replace the
+underscores with project names for the ping times where you remember what you
+were doing.
 
 ## Different todo.txt locations
 

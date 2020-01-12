@@ -1,6 +1,7 @@
 module Tt.Ping
-  ( nextPing,
-    pingTimes
+  ( nextPing
+  , lastPing
+  , pingTimes
   )
 where
 
@@ -14,17 +15,18 @@ import           Tt.Util
 nextPing :: NominalDiffTime -> UTCTime -> UTCTime
 nextPing avgDuration now = posixSecondsToUTCTime
   (secondsToNominalDiffTime (fromIntegral t))
-  where t = nextPing' (toInt64 avgDuration) (unixSeconds now)
+  where t = findPing (toInt64 avgDuration) 1 (unixSeconds now)
+
+lastPing :: NominalDiffTime -> UTCTime -> UTCTime
+lastPing avgDuration now = posixSecondsToUTCTime
+  (secondsToNominalDiffTime (fromIntegral t))
+  where t = findPing (toInt64 avgDuration) (-1) (unixSeconds now)
 
 pingTimes :: NominalDiffTime -> Interval UTCTime -> [UTCTime]
-pingTimes avgDuration timeSpan =
-  if next < sup timeSpan then
-   (next : (pingTimes avgDuration (next ... sup timeSpan)))
-  else
-   []
- where
-  next = nextPing avgDuration (inf timeSpan)
-
+pingTimes avgDuration timeSpan = if next < sup timeSpan
+  then (next : (pingTimes avgDuration (next ... sup timeSpan)))
+  else []
+  where next = nextPing avgDuration (inf timeSpan)
 
 unixSeconds :: UTCTime -> Int64
 unixSeconds = toInt64 . utcTimeToPOSIXSeconds
@@ -32,10 +34,11 @@ unixSeconds = toInt64 . utcTimeToPOSIXSeconds
 toInt64 :: NominalDiffTime -> Int64
 toInt64 = fromIntegral . truncate . nominalDiffTimeToSeconds
 
-nextPing' :: Int64 -> Int64 -> Int64
-nextPing' intervalSeconds unixTime | isPing intervalSeconds (unixTime + 1) =
-  unixTime + 1
-nextPing' intervalSeconds unixTime = nextPing' intervalSeconds (unixTime + 1)
+findPing :: Int64 -> Int64 -> Int64 -> Int64
+findPing intervalSeconds delta unixTime
+  | isPing intervalSeconds (unixTime + delta) = unixTime + delta
+findPing intervalSeconds delta unixTime =
+  findPing intervalSeconds delta (unixTime + delta)
 
 isPing :: Int64 -> Int64 -> Bool
 isPing intervalSeconds unixTime = (noise unixTime) `mod` intervalSeconds == 0

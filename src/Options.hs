@@ -1,6 +1,18 @@
 module Options
   ( Options(prefix, cmd)
-  , Cmd(In, Out, Break, Todo, Done, Goals, Current, NextPing, LogPings, Timeclock)
+  , Cmd
+    ( In
+    , Out
+    , Break
+    , Todo
+    , Done
+    , Goals
+    , Current
+    , NextPing
+    , FillPings
+    , LogPing
+    , Timeclock
+    )
   , options
   )
 where
@@ -39,7 +51,8 @@ data Cmd
   | Goals
   | Current
   | NextPing { intervalMinutes :: Int, now :: Maybe Int64 }
-  | LogPings { intervalMinutes :: Int }
+  | FillPings { intervalMinutes :: Int, approxCount :: Int }
+  | LogPing { intervalMinutes :: Int, project :: String, comment :: Maybe String }
   | Timeclock
   deriving Show
 
@@ -121,9 +134,28 @@ parseCmd =
              "Give time in seconds to sleep until next stochastic time tracking ping"
          )
     <> command
-         "s"
-         ( info (LogPings <$> argument auto (metavar "interval-minutes"))
-         $ progDesc "Interactively log recent stochastic pings"
+         "fill-pings"
+         ( info
+             (   FillPings
+             <$> argument auto (metavar "interval-minutes")
+             <*> option
+                   auto
+                   (short 'n' <> metavar "approx-count" <> value 20 <> help
+                     "Approximate ping count"
+                   )
+             )
+         $ progDesc
+             "Fill last few unaccounted pings into the log file to be edited manually"
+         )
+    <> command
+         "log-ping"
+         ( info
+             (   LogPing
+             <$> argument auto (metavar "interval-minutes")
+             <*> argument str  (metavar "project")
+             <*> (maybeWords <$> many (argument str (metavar "comment")))
+             )
+         $ progDesc "Log activity for latest ping directly"
          )
 
     <> command

@@ -76,8 +76,13 @@ runCmd Goals                          = goals
 runCmd (NextPing intervalMinutes now) = pingDelay
   (secondsToNominalDiffTime $ fromIntegral $ intervalMinutes * 60)
   (fmap (posixSecondsToUTCTime . secondsToNominalDiffTime . fromIntegral) now)
-runCmd (LogPings intervalMinutes) =
-  inquireGaps (secondsToNominalDiffTime $ fromIntegral $ intervalMinutes * 60)
+runCmd (FillPings intervalMinutes approxCount) = fillPings
+  (secondsToNominalDiffTime $ fromIntegral $ intervalMinutes * 60)
+  approxCount
+runCmd (LogPing intervalMinutes project comment) = logPing
+  (secondsToNominalDiffTime $ fromIntegral $ intervalMinutes * 60)
+  project
+  comment
 
 adjustTime :: Maybe String -> ContextIO ZonedTime
 adjustTime expr = case expr of
@@ -324,46 +329,56 @@ today = do
   t <- asks (zonedTimeToLocalTime . now)
   return $ t { localTimeOfDay = midnight } ... t
 
-last24h :: ContextIO (Interval UTCTime)
-last24h = do
+timespanToNow :: NominalDiffTime -> ContextIO (Interval UTCTime)
+timespanToNow span = do
   t <- asks (zonedTimeToUTC . now)
-  return $ addUTCTime (secondsToNominalDiffTime (fromIntegral (-86400))) t ... t
-
-recentPings :: NominalDiffTime -> ContextIO [ZonedTime]
-recentPings avgDuration = do
-  interval <- last24h
-  zone     <- asks (zonedTimeZone . now)
-  return $ map (utcToZonedTime zone) $ pingTimes avgDuration interval
+  return $ (-span) `addUTCTime` t ... t
 
 pingIsLogged :: Db -> NominalDiffTime -> ZonedTime -> Bool
 pingIsLogged db avgDuration t = any (logsPing avgDuration t) db
 
 pingDelay :: NominalDiffTime -> (Maybe UTCTime) -> ContextIO ()
 pingDelay avgDuration maybeT = do
-  t <- zonedTimeToUTC <$> asks now
+  t <- asks (zonedTimeToUTC . now)
   let now'     = fromMaybe t maybeT -- Either parameter or current time
   let pingTime = nextPing avgDuration now'
   let diff     = pingTime `diffUTCTime` now'
   liftIO $ (printf "%d\n" ((ceiling diff) :: Integer))
 
-inquireGaps :: NominalDiffTime -> ContextIO ()
-inquireGaps avgDuration = do
-  interval <- last24h
+fillPings :: NominalDiffTime -> Int -> ContextIO ()
+fillPings avgDuration approxCount = do
+  interval <- timespanToNow (avgDuration * (fromIntegral approxCount))
   zone     <- asks (zonedTimeZone . now)
   entries  <- asks db
-  let times  = map (utcToZonedTime zone) $ pingTimes avgDuration interval
-  let times' = filter (not . pingIsLogged entries avgDuration) times
-  --liftIO $ (print times')
-  processGaps avgDuration Nothing times'
+  let times =
+        filter (not . pingIsLogged entries avgDuration)
+          $ map (utcToZonedTime zone)
+          $ pingTimes avgDuration interval
+  emitBlanks avgDuration times
 
-processGaps :: NominalDiffTime -> Maybe String -> [ZonedTime] -> ContextIO ()
-processGaps avgDuration prev (t : ts) = do
-  liftIO $ putStrLn (Msg.stochasticPoint t (fromMaybe "" prev) avgDuration "")
-  input <- liftIO getLine
-  let (p : c) = case (prev, input) of
-        (Nothing, "") -> error "no project"
-        (Just a , "") -> [a]
-        (_      , b ) -> words b
-  append (Msg.stochasticPoint t p avgDuration (unwords c))
-  processGaps avgDuration (Just p) ts
-processGaps _ _ [] = return ()
+emitBlanks :: NominalDiffTime -> [ZonedTime] -> ContextIO ()
+emitBlanks avgDuration (t : ts) = do
+  let msg = Msg.stochasticPoint t "_" avgDuration ""
+  liftIO $ putStrLn msg
+  append msg
+  emitBlanks avgDuration ts
+emitBlanks _ [] = do
+  liftIO $ putStrLn "Edit newly filled time points manually in todo.txt"
+
+logPing :: NominalDiffTime -> String -> Maybe String -> ContextIO ()
+logPing avgDuration project comment = do
+  t       <- asks now
+  zone    <- asks (zonedTimeZone . now)
+  entries <- asks db
+  let pingTime = utcToZonedTime zone $ lastPing avgDuration (zonedTimeToUTC t)
+  if pingIsLogged entries avgDuration pingTime
+    then do
+      liftIO $ putStrLn "Last ping logged already"
+    else do
+      let
+        msg = Msg.stochasticPoint pingTime
+                                  project
+                                  avgDuration
+                                  (fromMaybe "" comment)
+      liftIO $ putStrLn msg
+      append msg
