@@ -262,3 +262,7 @@ out pairs that change time zone offset will result in wrong interval sizes and
 may cause parse errors if the local time of the clock out is earlier than the
 local time of the clock in. This will happen if the work session spans a
 daylight saving time transition.
+
+Goals table columns go out of alignment when a colored deadline value is
+printed due to printf counting the color setting ANSI escape code as part of
+the column value string width.
