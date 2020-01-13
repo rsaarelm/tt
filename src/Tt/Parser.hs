@@ -100,10 +100,11 @@ entryParser =
    where
     buildSession d time project (amount, inputUnit) = SessionEntry
       project
-      (Session localtime (fmap (* multiplier) amount) unit)
+      (Session localtime zone (fmap (* multiplier) amount) unit)
      where
       (multiplier, unit) = convertUnit inputUnit
       localtime          = LocalTime d (maybe midday fst time)
+      zone               = maybe Nothing snd time
 
   stochasticSession =
     CleanEntry
@@ -116,9 +117,10 @@ entryParser =
    where
     buildSession d time project minutes = SessionEntry
       project
-      (Session localtime (Add (60 * minutes)) (Just StochasticDuration))
+      (Session localtime zone (Add (60 * minutes)) (Just StochasticDuration))
      where
       localtime          = LocalTime d (maybe midday fst time)
+      zone               = maybe Nothing snd time
 
 -- | Parse a relative or absolute quantity with an optional unit.
 quantity :: Parser (Value Rational, Maybe String)

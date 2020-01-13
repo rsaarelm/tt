@@ -12,9 +12,10 @@ module Tt.Entry (
   printDuration,
   showUnit,
   sessionHasTimeOfDay,
-  Session(Session, sessionTime, sessionAmount, sessionUnit),
+  Session(Session, sessionTime, sessionZone, sessionAmount, sessionUnit),
 ) where
 
+import           Data.Maybe
 import           Data.Time
 import           Numeric.Interval.NonEmpty
 import           Text.Printf
@@ -36,6 +37,14 @@ data RawEntry =
   | CleanEntry Entry
   deriving (Eq, Show)
 
+-- | A single unit of work
+data Session = Session {
+  sessionTime   :: LocalTime,
+  sessionZone   :: Maybe TimeZone,
+  sessionAmount :: Value Rational,
+  sessionUnit   :: Maybe Unit
+} deriving (Eq, Show)
+
 -- | Sort key for the entries
 --
 -- The basic sorting is based on the timestamp of the entry, a secondary
@@ -50,12 +59,10 @@ entrySortKey (CleanEntry (StartGoal d _ _ _)) = (LocalTime d midnight, 0)
 entrySortKey (CleanEntry (EndGoal d _)) = (LocalTime (addDays 1 d) midnight, 0)
 
 -- | Does entry log a specific stochastic ping?
-logsPing :: NominalDiffTime -> ZonedTime -> RawEntry -> Bool
-logsPing avgDuration t (CleanEntry (SessionEntry _ (Session t' (Add secs) (Just StochasticDuration))))
-  = secs
-    == ((fromIntegral $ truncate avgDuration) :: Rational)
-    && t'
-    == zonedTimeToLocalTime t
+logsPing :: NominalDiffTime -> UTCTime -> RawEntry -> Bool
+logsPing avgDuration ut (CleanEntry (SessionEntry _ (Session t zone (Add secs) (Just StochasticDuration))))
+  = secs == ((fromIntegral $ truncate avgDuration) :: Rational)
+    && localTimeToUTC (fromMaybe utc zone) t == ut
 logsPing _ _ _ = False
 
 -- | Return project name from a clean session entry
@@ -112,14 +119,7 @@ sessionHasTimeOfDay s =
   -- sessions that start at 00:00:00.
   localTimeOfDay (sessionTime s) /= midnight
 
--- | A single unit of work
-data Session = Session {
-  sessionTime   :: LocalTime,
-  sessionAmount :: Value Rational,
-  sessionUnit   :: Maybe Unit
-} deriving (Eq, Show)
-
 instance AsTimeInterval Session where
-  asTimeInterval (Session t (Add n) (Just Duration)) =
+  asTimeInterval (Session t _ (Add n) (Just Duration)) =
     t ... (fromIntegral (truncate n :: Integer) `addLocalTime` t)
   asTimeInterval s = singleton (sessionTime s)

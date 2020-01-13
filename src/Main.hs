@@ -334,8 +334,8 @@ timespanToNow span = do
   t <- asks (zonedTimeToUTC . now)
   return $ (-span) `addUTCTime` t ... t
 
-pingIsLogged :: Db -> NominalDiffTime -> ZonedTime -> Bool
-pingIsLogged db avgDuration t = any (logsPing avgDuration t) db
+pingIsLogged :: Db -> NominalDiffTime -> UTCTime -> Bool
+pingIsLogged db avgDuration ut = any (logsPing avgDuration ut) db
 
 pingDelay :: NominalDiffTime -> (Maybe UTCTime) -> ContextIO ()
 pingDelay avgDuration maybeT = do
@@ -345,15 +345,19 @@ pingDelay avgDuration maybeT = do
   let diff     = pingTime `diffUTCTime` now'
   liftIO $ (printf "%d\n" ((ceiling diff) :: Integer))
 
+recentUnloggedPings :: Db -> NominalDiffTime -> Interval UTCTime -> [UTCTime]
+recentUnloggedPings entries avgDuration interval =
+  reverse $ takeWhile notLogged $ reverse $ pingTimes avgDuration interval
+ where
+  notLogged = not . pingIsLogged entries avgDuration
+
 fillPings :: NominalDiffTime -> Int -> ContextIO ()
 fillPings avgDuration approxCount = do
   interval <- timespanToNow (avgDuration * (fromIntegral approxCount))
   zone     <- asks (zonedTimeZone . now)
   entries  <- asks db
   let times =
-        filter (not . pingIsLogged entries avgDuration)
-          $ map (utcToZonedTime zone)
-          $ pingTimes avgDuration interval
+        map (utcToZonedTime zone) $ recentUnloggedPings entries avgDuration interval
   emitBlanks avgDuration times
 
 emitBlanks :: NominalDiffTime -> [ZonedTime] -> ContextIO ()
@@ -370,13 +374,13 @@ logPing avgDuration project comment = do
   t       <- asks now
   zone    <- asks (zonedTimeZone . now)
   entries <- asks db
-  let pingTime = utcToZonedTime zone $ lastPing avgDuration (zonedTimeToUTC t)
+  let pingTime = lastPing avgDuration (zonedTimeToUTC t)
   if pingIsLogged entries avgDuration pingTime
     then do
       liftIO $ putStrLn "Last ping logged already"
     else do
       let
-        msg = Msg.stochasticPoint pingTime
+        msg = Msg.stochasticPoint (utcToZonedTime zone pingTime)
                                   project
                                   avgDuration
                                   (fromMaybe "" comment)

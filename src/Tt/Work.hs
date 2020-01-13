@@ -99,7 +99,7 @@ close state end = case currentStart state of
   Just (p, begin) ->
     WorkState Nothing
       $  entries state
-      ++ [SessionEntry p (Session begin (Add t) (Just Duration))]
+      ++ [SessionEntry p (Session begin Nothing (Add t) (Just Duration))]
     where t = fromIntegral ((truncate $ end `diffLocalTime` begin) :: Integer)
   Nothing -> trace "Unmatched clock out" state
 
@@ -111,11 +111,12 @@ during units s = mapMaybe (intersectWork s) units
 
 -- | Transform work session to have new time inverval
 imposeInterval :: Session -> Interval LocalTime -> Session
-imposeInterval (Session _ (Add _) (Just Duration)) i = Session
+imposeInterval (Session _ z (Add _) (Just Duration)) i = Session
   (inf i)
+  z
   (Add (fromIntegral (truncate (intervalDuration i) :: Integer)))
   (Just Duration)
-imposeInterval (Session _ a u) i = Session (inf i) a u
+imposeInterval (Session _ z a u) i = Session (inf i) z a u
 
 intersectWork :: Interval LocalTime -> Session -> Maybe Session
 intersectWork i session = case i `intersection` asTimeInterval session of
