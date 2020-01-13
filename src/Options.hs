@@ -51,7 +51,7 @@ data Cmd
   | Goals
   | Current
   | NextPing { intervalMinutes :: Int, now :: Maybe Int64 }
-  | MissedPings { intervalMinutes :: Int, approxCount :: Int }
+  | MissedPings { approxCount :: Int, project :: String, intervalMinutes :: Int }
   | LogPing { intervalMinutes :: Int, project :: String, comment :: Maybe String }
   | Timeclock
   deriving Show
@@ -137,12 +137,20 @@ parseCmd =
          "missed-pings"
          ( info
              (   MissedPings
-             <$> argument auto (metavar "interval-minutes")
-             <*> option
+             <$> option
                    auto
                    (short 'n' <> metavar "approx-count" <> value 20 <> help
                      "Approximate ping count"
                    )
+             <*> option
+                   str
+                   (short 'p'
+                    <> long "project"
+                    <> metavar "project-name"
+                    <> value "_"
+                    <> help "Default project name for the missed pings"
+                   )
+             <*> argument auto (metavar "interval-minutes")
              )
          $ progDesc
              "Print blank log entries for recent missed pings"
