@@ -15,11 +15,11 @@ main = hspec $ do
       goalValue simpleGoal `shouldBe` 0
     it "updates goal with incremental value" $
       goalValue (simpleGoal `updateGoal`
-        Session (ld 2018 01 03) (Add 4) Nothing)
+        Session (ld 2018 01 03) Nothing (Add 4) Nothing)
       `shouldBe` 4
     it "updates goal with absolute value" $
       goalValue (simpleGoal `updateGoal`
-        Session (ld 2018 01 02) (Set 52 52) Nothing)
+        Session (ld 2018 01 02) Nothing (Set 52 52) Nothing)
       `shouldBe` 52
     it "fails a goal after a day of falling below the target line" $
       failureTime simpleGoal
@@ -44,35 +44,35 @@ main = hspec $ do
       `shouldBe` 5
     it "accepts random units for unitless goal" $
       goalValue (simpleGoal `updateGoal`
-        Session (ld 2018 01 03) (Add 4) (Just (Named "the")))
+        Session (ld 2018 01 03) Nothing (Add 4) (Just (Named "the")))
       `shouldBe` 4
     it "does not accept duration units for unitless goal" $
       goalValue (simpleGoal `updateGoal`
-        Session (ld 2018 01 03) (Add 4) (Just Duration))
+        Session (ld 2018 01 03) Nothing (Add 4) (Just Duration))
       `shouldBe` 0
     it "rejects unitless session for goal with unit" $
       goalValue (kmGoal `updateGoal`
-        Session (ld 2018 01 03) (Add 4) Nothing)
+        Session (ld 2018 01 03) Nothing (Add 4) Nothing)
       `shouldBe` 0
     it "accepts matching unit session for goal with unit" $
       goalValue (kmGoal `updateGoal`
-        Session (ld 2018 01 03) (Add 4) (Just (Named "km")))
+        Session (ld 2018 01 03) Nothing (Add 4) (Just (Named "km")))
       `shouldBe` 4
     it "rejects mismatching unit session for goal with unit" $
       goalValue (kmGoal `updateGoal`
-        Session (ld 2018 01 03) (Add 4) (Just (Named "the")))
+        Session (ld 2018 01 03) Nothing (Add 4) (Just (Named "the")))
       `shouldBe` 0
     it "accepts duration units for duration goal" $
       goalValue (durationGoal `updateGoal`
-        Session (ld 2018 01 03) (Add 60) (Just Duration))
+        Session (ld 2018 01 03) Nothing (Add 60) (Just Duration))
       `shouldBe` 60
     it "rejects unitless session for duration goal" $
       goalValue (durationGoal `updateGoal`
-        Session (ld 2018 01 03) (Add 60) Nothing)
+        Session (ld 2018 01 03) Nothing (Add 60) Nothing)
       `shouldBe` 0
     it "rejects named unit for duration goal" $
       goalValue (durationGoal `updateGoal`
-        Session (ld 2018 01 03) (Add 60) (Just (Named "the")))
+        Session (ld 2018 01 03) Nothing (Add 60) (Just (Named "the")))
       `shouldBe` 0
 
   describe "Entry parser" $ do
@@ -100,34 +100,34 @@ main = hspec $ do
 
     it "parses simple accumulation" $
       "x 2018-02-10 thing" `shouldParseAsSession`
-        ("thing", Session (ld 2018 02 10) (Add 1) Nothing)
+        ("thing", Session (ld 2018 02 10) Nothing (Add 1) Nothing)
     it "parses simple accumulation with time" $
       "x 2018-02-10 11:34 thing" `shouldParseAsSession`
-        ("thing", Session (ldt 2018 02 10 11 34 0) (Add 1) Nothing)
+        ("thing", Session (ldt 2018 02 10 11 34 0) Nothing (Add 1) Nothing)
     it "does not care about stuff after simple accumulation" $
       "x 2018-02-10 thing qux quux" `shouldParseAsSession`
-        ("thing", Session (ld 2018 02 10) (Add 1) Nothing)
+        ("thing", Session (ld 2018 02 10) Nothing (Add 1) Nothing)
     it "does not care about comment after simple accumulation" $
       "x 2018-02-10 thing  -- Comment thing" `shouldParseAsSession`
-        ("thing", Session (ld 2018 02 10) (Add 1) Nothing)
+        ("thing", Session (ld 2018 02 10) Nothing (Add 1) Nothing)
     it "parses quantified accumulation" $
       "x 2018-02-10 thing 12" `shouldParseAsSession`
-        ("thing", Session (ld 2018 02 10) (Add 12) Nothing)
+        ("thing", Session (ld 2018 02 10) Nothing (Add 12) Nothing)
     it "requires quantity to parse unit" $
       "x 2018-02-10 thing km" `shouldParseAsSession`
-        ("thing", Session (ld 2018 02 10) (Add 1) Nothing)
+        ("thing", Session (ld 2018 02 10) Nothing (Add 1) Nothing)
     it "parser accumulation with unit and quantity" $
       "x 2018-02-10 run 14 km" `shouldParseAsSession`
-        ("run", Session (ld 2018 02 10) (Add 14) (Just $ Named "km"))
+        ("run", Session (ld 2018 02 10) Nothing (Add 14) (Just $ Named "km"))
     it "does not parse comment as unit if you separate it with two spaces" $
       "x 2018-02-10 thing 12  The 'The' in this comment is not an unit!" `shouldParseAsSession`
-        ("thing", Session (ld 2018 02 10) (Add 12) Nothing)
+        ("thing", Session (ld 2018 02 10) Nothing (Add 12) Nothing)
     it "parses decimal quantity accumulation" $
       "x 2018-02-10 thing 12.34" `shouldParseAsSession`
-        ("thing", Session (ld 2018 02 10) (Add 12.34) Nothing)
+        ("thing", Session (ld 2018 02 10) Nothing (Add 12.34) Nothing)
     it "parses setting the quantity" $
       "x 2018-02-10 thing = 27" `shouldParseAsSession`
-        ("thing", Session (ld 2018 02 10) (Set 27 27) Nothing)
+        ("thing", Session (ld 2018 02 10) Nothing (Set 27 27) Nothing)
 
     -- It's important to support time of day in absolute setting, because the
     -- user may sort the todo.txt file and multiple absolute values during the
@@ -135,34 +135,34 @@ main = hspec $ do
     -- imposed.
     it "parses setting the quantity with time of day" $
       "x 2018-02-10 09:30 thing = 29" `shouldParseAsSession`
-        ("thing", Session (ldt 2018 02 10 9 30 0) (Set 29 29) Nothing)
+        ("thing", Session (ldt 2018 02 10 9 30 0) Nothing (Set 29 29) Nothing)
 
     it "parses setting the with unit" $
       "x 2018-02-10 odometer = 128 km" `shouldParseAsSession`
-        ("odometer", Session (ld 2018 02 10) (Set 128 128) (Just $ Named "km"))
+        ("odometer", Session (ld 2018 02 10) Nothing (Set 128 128) (Just $ Named "km"))
     it "parses minutes as duration" $
       "x 2018-02-10 job 10 min" `shouldParseAsSession`
-        ("job", Session (ld 2018 02 10) (Add 600) (Just Duration))
+        ("job", Session (ld 2018 02 10) Nothing (Add 600) (Just Duration))
     it "parses time in session entries" $
       "x 2018-02-10 11:34 job 10 min"
       `shouldParseAsSession`
-      ("job", Session (ldt 2018 02 10 11 34 0) (Add 600) (Just Duration))
+      ("job", Session (ldt 2018 02 10 11 34 0) Nothing (Add 600) (Just Duration))
     it "parses hours as duration" $
       "x 2018-02-10 11:34 job 2 h"
       `shouldParseAsSession`
-      ("job", Session (ldt 2018 02 10 11 34 0) (Add 7200) (Just Duration))
+      ("job", Session (ldt 2018 02 10 11 34 0) Nothing (Add 7200) (Just Duration))
     it "parses mixed unit duration" $
       "x 2018-02-10 11:34 job 2 h 30 min"
       `shouldParseAsSession`
-      ("job", Session (ldt 2018 02 10 11 34 0) (Add 9000) (Just Duration))
+      ("job", Session (ldt 2018 02 10 11 34 0) Nothing (Add 9000) (Just Duration))
     it "parses stochastic time duration" $
       "x 2018-02-10 12:34:56+0200 project 45 min *"
       `shouldParseAsSession`
-      ("project", Session (ldt 2018 02 10 12 34 56) (Add 2700) (Just StochasticDuration))
+      ("project", Session (ldt 2018 02 10 12 34 56) (Just $ minutesToTimeZone 120) (Add 2700) (Just StochasticDuration))
     it "parses stochastic time duration with comment" $
-      "x 2018-02-10 12:34:56+0200 project 45 min * -- Things and stuff"
+      "x 2018-02-10 12:34:56+0000 project 45 min * -- Things and stuff"
       `shouldParseAsSession`
-      ("project", Session (ldt 2018 02 10 12 34 56) (Add 2700) (Just StochasticDuration))
+      ("project", Session (ldt 2018 02 10 12 34 56) (Just $ minutesToTimeZone 0) (Add 2700) (Just StochasticDuration))
 
     it "parses simple goal" $
       "x 2018-02-10 GOAL floss 7" `shouldParseEntry`
