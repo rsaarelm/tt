@@ -9,7 +9,7 @@ module Options
     , Goals
     , Current
     , NextPing
-    , FillPings
+    , MissedPings
     , LogPing
     , Timeclock
     )
@@ -51,7 +51,7 @@ data Cmd
   | Goals
   | Current
   | NextPing { intervalMinutes :: Int, now :: Maybe Int64 }
-  | FillPings { intervalMinutes :: Int, approxCount :: Int }
+  | MissedPings { intervalMinutes :: Int, approxCount :: Int }
   | LogPing { intervalMinutes :: Int, project :: String, comment :: Maybe String }
   | Timeclock
   deriving Show
@@ -134,9 +134,9 @@ parseCmd =
              "Give time in seconds to sleep until next stochastic time tracking ping"
          )
     <> command
-         "fill-pings"
+         "missed-pings"
          ( info
-             (   FillPings
+             (   MissedPings
              <$> argument auto (metavar "interval-minutes")
              <*> option
                    auto
@@ -145,7 +145,7 @@ parseCmd =
                    )
              )
          $ progDesc
-             "Fill last few unaccounted pings into the log file to be edited manually"
+             "Print blank log entries for recent missed pings"
          )
     <> command
          "log-ping"

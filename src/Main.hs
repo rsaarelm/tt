@@ -76,7 +76,7 @@ runCmd Goals                          = goals
 runCmd (NextPing intervalMinutes now) = pingDelay
   (secondsToNominalDiffTime $ fromIntegral $ intervalMinutes * 60)
   (fmap (posixSecondsToUTCTime . secondsToNominalDiffTime . fromIntegral) now)
-runCmd (FillPings intervalMinutes approxCount) = fillPings
+runCmd (MissedPings intervalMinutes approxCount) = missedPings
   (secondsToNominalDiffTime $ fromIntegral $ intervalMinutes * 60)
   approxCount
 runCmd (LogPing intervalMinutes project comment) = logPing
@@ -351,8 +351,8 @@ recentUnloggedPings entries avgDuration interval =
  where
   notLogged = not . pingIsLogged entries avgDuration
 
-fillPings :: NominalDiffTime -> Int -> ContextIO ()
-fillPings avgDuration approxCount = do
+missedPings :: NominalDiffTime -> Int -> ContextIO ()
+missedPings avgDuration approxCount = do
   interval <- timespanToNow (avgDuration * (fromIntegral approxCount))
   zone     <- asks (zonedTimeZone . now)
   entries  <- asks db
@@ -364,10 +364,8 @@ emitBlanks :: NominalDiffTime -> [ZonedTime] -> ContextIO ()
 emitBlanks avgDuration (t : ts) = do
   let msg = Msg.stochasticPoint t "_" avgDuration ""
   liftIO $ putStrLn msg
-  append msg
   emitBlanks avgDuration ts
-emitBlanks _ [] = do
-  liftIO $ putStrLn "Edit newly filled time points manually in todo.txt"
+emitBlanks _ [] = return ()
 
 logPing :: NominalDiffTime -> String -> Maybe String -> ContextIO ()
 logPing avgDuration project comment = do

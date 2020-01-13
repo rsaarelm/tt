@@ -222,18 +222,19 @@ your preferred ping duration for efficient logging:
 
     alias t="tt log-ping 45"
 
-If you missed multiple pings, you can use `fill-pings` to enter the ping
-timestamps in your todo.txt file for manual editing
+You can list recent pings you haven't filled yet with
 
-    tt fill-pings 45
+    tt missed-pings 45
 
-This emits several lines like
+This prints out several lines
 
     x 2020-01-10 20:08:03+0200 _ 45 min *
 
-to your todo.txt file. You can now edit the todo.txt file and replace the
-underscores with project names for the ping times where you remember what you
-were doing.
+You can catenate the output to your todo.txt file (make sure to use the double
+`>>` or you'll wipe your existing file) and then fill the details in your text
+editor:
+
+    tt missed-pings 45 >> ~/todo.txt
 
 ## Different todo.txt locations
 
