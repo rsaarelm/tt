@@ -122,4 +122,6 @@ sessionHasTimeOfDay s =
 instance AsTimeInterval Session where
   asTimeInterval (Session t _ (Add n) (Just Duration)) =
     t ... (fromIntegral (truncate n :: Integer) `addLocalTime` t)
+  asTimeInterval (Session t _ (Add n) (Just StochasticDuration)) =
+    t ... (fromIntegral (truncate n :: Integer) `addLocalTime` t)
   asTimeInterval s = singleton (sessionTime s)
