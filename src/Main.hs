@@ -268,35 +268,23 @@ goals = do
   unless (null goals) $ showGoals goals t
  where
   showGoals goals t = do
-    liftIO
-      $ printf
-          "goal               current (minimum)  deadline                 failures\n"
-    liftIO
-      $ printf
-          "------------------|------------------|------------------------|--------\n"
     mapM_ (printGoal t) goals
 
 printGoal :: ZonedTime -> (Project, Goal) -> ContextIO ()
 printGoal now (p, g) = liftIO $ printf
-  "%-18s %-18s %-24s %s\n"
-  p
+  "%-14s %-8s %-24s\n"
+  (p ++ (if failureCount g > 0 then printf " †%d" (failureCount g) else ""))
   (printf
-    "%s %s %s"
-    (showUnit (goalValue g) (goalUnit g))
-    (if goalSlope g > 0 then "↑" else "↓")
-    (showUnit
-      ( fromIntegral
-      $ (if goalSlope g > 0 then ceiling else floor) (goalMinimum g')
-      )
-      (goalUnit g')
-    ) :: String
+    "%s"
+    (showUnit ((goalValue g) - goalTarget) (goalUnit g)) :: String
   )
   (Msg.deadline now (failureTime g))
-  (if failureCount g > 0 then show (failureCount g) else "")
  where
   -- Show target point at next midnight where today's goal failure will be
   -- checked.
   g' = updateGoalClock g nextMidnight
+  goalTarget = fromIntegral $
+    (if goalSlope g > 0 then ceiling else floor) (goalMinimum g')
   nextMidnight =
     LocalTime (1 `addDays` localDay (zonedTimeToLocalTime now)) midnight
 

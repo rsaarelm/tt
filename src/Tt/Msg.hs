@@ -75,9 +75,7 @@ highlightCritical = printf "\ESC[31;1m%s\ESC[0m"
 
 -- | Deadline date message
 deadline :: ZonedTime -> LocalTime -> String
-deadline now day = printf "%s %s"
-                          (formatTime defaultTimeLocale "%Y-%m-%d" day')
-                          (days ndays)
+deadline now day = printf "%s" (days ndays)
  where
   day'  = (-1) `addDays` localDay day
   ndays = day' `diffDays` localDay (zonedTimeToLocalTime now)
