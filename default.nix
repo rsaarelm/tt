@@ -29,15 +29,9 @@ let
   };
 in
   pkg.overrideAttrs(attr: {
-    # Shell stuff
-    buildInputs = [
-      pkgs.gmp
-
-      pkgs.cabal-install
-      pkgs.hlint
-
-      pkgs.haskellPackages.brittany
-
-      pkgs.haskellPackages.hspec
+    buildInputs = with pkgs; [
+      gmp
+      cabal-install
+      haskellPackages.hspec
     ];
   })
